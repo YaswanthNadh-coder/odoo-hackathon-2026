@@ -1,6 +1,6 @@
 import EnvironmentalForms from '@/components/EnvironmentalForms';
 import TransactionsTable from '@/components/TransactionsTable';
-import { calculateESGStats, DEPT_CARBON_TARGETS } from '@/lib/esg-calc';
+import { calculateESGStats } from '@/lib/esg-calc';
 import prisma from '@/lib/db';
 import { getSession } from '@/lib/session';
 

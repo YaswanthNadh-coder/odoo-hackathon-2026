@@ -57,6 +57,7 @@ export default async function SettingsPage() {
     code: dept.code,
     headName: dept.headName,
     employeeCount: dept.employeeCount,
+    carbonTarget: dept.carbonTarget,
     status: dept.status,
   }));
 

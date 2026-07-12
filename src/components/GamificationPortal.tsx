@@ -551,6 +551,7 @@ export default function GamificationPortal({
                     <option value="draft">Draft</option>
                     <option value="active">Active</option>
                     <option value="review">Under Review</option>
+                    <option value="completed">Completed</option>
                     <option value="archived">Archived</option>
                   </select>
                 </div>
