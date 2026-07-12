@@ -1,5 +1,6 @@
 import ReportsPortal from '@/components/ReportsPortal';
 import { calculateESGStats } from '@/lib/esg-calc';
+import prisma from '@/lib/db';
 
 export const revalidate = 0; // Live updates
 
@@ -39,13 +40,24 @@ export default async function ReportsPage() {
     },
   }));
 
+  // Fetch filter options
+  const departments = await prisma.department.findMany({ orderBy: { name: 'asc' } });
+  const employees = await prisma.employee.findMany({ orderBy: { name: 'asc' } });
+  const challenges = await prisma.challenge.findMany({ orderBy: { title: 'asc' } });
+  const categories = await prisma.category.findMany({ orderBy: { name: 'asc' } });
+
+  const serializedDepartments = departments.map(d => ({ id: d.id, name: d.name, code: d.code }));
+  const serializedEmployees = employees.map(e => ({ id: e.id, name: e.name }));
+  const serializedChallenges = challenges.map(c => ({ id: c.id, title: c.title }));
+  const serializedCategories = categories.map(cat => ({ id: cat.id, name: cat.name, type: cat.type }));
+
   return (
     <div className="page-fade-in">
       <div className="flex-between mb-8">
         <div>
           <h1 style={{ fontSize: '2rem', fontWeight: 800 }}>📁 ESG Summary & Reports Center</h1>
           <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-            Consolidated audits ledger and exportable regulatory spreadsheets.
+            Consolidated audits ledger, pre-configured vertical indexes, and custom exportable reports builder.
           </p>
         </div>
       </div>
@@ -54,6 +66,10 @@ export default async function ReportsPage() {
         departmentScores={serializedScores}
         weights={weights}
         overallScores={overallScores}
+        departments={serializedDepartments}
+        employees={serializedEmployees}
+        challenges={serializedChallenges}
+        categories={serializedCategories}
       />
     </div>
   );

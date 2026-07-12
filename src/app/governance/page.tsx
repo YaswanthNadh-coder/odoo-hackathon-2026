@@ -20,6 +20,7 @@ export default async function GovernancePage() {
   const issues = await prisma.complianceIssue.findMany({
     include: {
       department: true,
+      audit: true,
     },
     orderBy: { dueDate: 'asc' },
   });
@@ -27,6 +28,15 @@ export default async function GovernancePage() {
   // Fetch departments for dropdown
   const departments = await prisma.department.findMany({
     orderBy: { name: 'asc' },
+  });
+
+  // Fetch audits
+  const audits = await prisma.audit.findMany({
+    include: {
+      department: true,
+      complianceIssues: true,
+    },
+    orderBy: { auditDate: 'desc' },
   });
 
   // Serialize dates for client components
@@ -37,6 +47,10 @@ export default async function GovernancePage() {
     owner: issue.owner,
     dueDate: issue.dueDate.toISOString(),
     status: issue.status,
+    auditId: issue.auditId,
+    audit: issue.audit ? {
+      title: issue.audit.title,
+    } : null,
     department: {
       name: issue.department.name,
       code: issue.department.code,
@@ -58,6 +72,26 @@ export default async function GovernancePage() {
     code: dept.code,
   }));
 
+  const serializedAudits = audits.map((audit) => ({
+    id: audit.id,
+    title: audit.title,
+    departmentId: audit.departmentId,
+    auditorName: audit.auditorName,
+    auditDate: audit.auditDate.toISOString(),
+    status: audit.status,
+    score: audit.score,
+    findings: audit.findings,
+    department: {
+      name: audit.department.name,
+      code: audit.department.code,
+    },
+    complianceIssues: audit.complianceIssues.map((issue) => ({
+      id: issue.id,
+      description: issue.description,
+      status: issue.status,
+    })),
+  }));
+
   return (
     <div className="page-fade-in">
       <div className="flex-between mb-8">
@@ -73,6 +107,7 @@ export default async function GovernancePage() {
         policies={serializedPolicies}
         issues={serializedIssues}
         departments={serializedDepartments}
+        audits={serializedAudits}
         currentUser={session}
       />
     </div>

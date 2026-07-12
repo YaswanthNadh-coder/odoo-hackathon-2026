@@ -1,6 +1,6 @@
 import EnvironmentalForms from '@/components/EnvironmentalForms';
 import TransactionsTable from '@/components/TransactionsTable';
-import { calculateESGStats, DEPT_CARBON_TARGETS } from '@/lib/esg-calc';
+import { calculateESGStats } from '@/lib/esg-calc';
 import prisma from '@/lib/db';
 import { getSession } from '@/lib/session';
 
@@ -31,6 +31,17 @@ export default async function EnvironmentalPage() {
     orderBy: { date: 'desc' },
   });
 
+  // Fetch Sustainability Goals
+  const goals = await prisma.environmentalGoal.findMany({
+    include: { department: true },
+    orderBy: { targetDate: 'asc' },
+  });
+
+  // Fetch Product ESG Profiles
+  const products = await prisma.productESGProfile.findMany({
+    orderBy: { name: 'asc' },
+  });
+
   const serializedTransactions = transactions.map((tx) => ({
     id: tx.id,
     date: tx.date.toISOString(),
@@ -47,6 +58,32 @@ export default async function EnvironmentalPage() {
     },
   }));
 
+  const serializedGoals = goals.map((g) => ({
+    id: g.id,
+    title: g.title,
+    description: g.description,
+    targetValue: g.targetValue,
+    currentValue: g.currentValue,
+    unit: g.unit,
+    departmentId: g.departmentId,
+    department: {
+      name: g.department.name,
+      code: g.department.code,
+    },
+    status: g.status,
+    targetDate: g.targetDate.toISOString(),
+  }));
+
+  const serializedProducts = products.map((p) => ({
+    id: p.id,
+    name: p.name,
+    sku: p.sku,
+    carbonFootprint: p.carbonFootprint,
+    materialSource: p.materialSource,
+    recyclingRate: p.recyclingRate,
+    status: p.status,
+  }));
+
   const isOfficerOrManager = session?.role === 'officer' || session?.role === 'manager';
 
   return (
@@ -55,7 +92,7 @@ export default async function EnvironmentalPage() {
         <div>
           <h1 style={{ fontSize: '2rem', fontWeight: 800 }}>🍀 Environmental Impact Module</h1>
           <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-            Scope 1 and Scope 2 carbon accounting tracker.
+            Scope 1 and Scope 2 carbon accounting tracker, sustainability targets, and product profiles.
           </p>
         </div>
       </div>
@@ -66,6 +103,8 @@ export default async function EnvironmentalPage() {
           <EnvironmentalForms
             departments={departments}
             factors={factors}
+            goals={serializedGoals}
+            products={serializedProducts}
             autoEmissionCalcEnabled={autoEmissionCalcEnabled}
             currentUser={session}
           />
