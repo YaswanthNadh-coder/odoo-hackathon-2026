@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { formatDate } from '@/lib/date';
 
 interface Policy {
@@ -80,6 +80,14 @@ export default function GovernancePortal({
 }: GovernancePortalProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'policies' | 'audits' | 'issues'>('policies');
+
+  // Polling for real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      router.refresh();
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [router]);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');

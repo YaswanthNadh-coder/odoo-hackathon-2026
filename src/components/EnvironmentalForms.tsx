@@ -80,6 +80,7 @@ export default function EnvironmentalForms({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // ----------------------------------------------------
   // CARBON LOGGING & FACTORS STATE
@@ -137,8 +138,10 @@ export default function EnvironmentalForms({
   // ----------------------------------------------------
   const handleSubmitCarbon = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFieldErrors({});
     if (!quantity || isNaN(parseFloat(quantity)) || parseFloat(quantity) <= 0) {
       setErrorMessage('Please enter a valid positive quantity.');
+      setFieldErrors({ quantity: 'Must be positive' });
       return;
     }
 
@@ -205,8 +208,15 @@ export default function EnvironmentalForms({
   // Handle creating Spending Record
   const handleCreateSpending = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!spendingDesc || !spendingAmount || !spendingQty || isNaN(parseFloat(spendingAmount)) || isNaN(parseFloat(spendingQty))) {
-      setErrorMessage('Please fill in all spending fields with valid numbers.');
+    setFieldErrors({});
+    let errors: Record<string, string> = {};
+    if (!spendingDesc.trim()) errors.spendingDesc = 'Description is required';
+    if (!spendingAmount || isNaN(parseFloat(spendingAmount))) errors.spendingAmount = 'Invalid amount';
+    if (!spendingQty || isNaN(parseFloat(spendingQty))) errors.spendingQty = 'Invalid quantity';
+    
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setErrorMessage('Please fix the errors below.');
       return;
     }
 
@@ -250,8 +260,15 @@ export default function EnvironmentalForms({
 
   const handleSaveFactor = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!factorName || !factorUnit || !factorValue || isNaN(parseFloat(factorValue))) {
-      setErrorMessage('Please provide name, unit and a valid numeric CO2e coefficient.');
+    setFieldErrors({});
+    let errors: Record<string, string> = {};
+    if (!factorName.trim()) errors.factorName = 'Name is required';
+    if (!factorUnit.trim()) errors.factorUnit = 'Unit is required';
+    if (!factorValue || isNaN(parseFloat(factorValue))) errors.factorValue = 'Invalid numeric value';
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setErrorMessage('Please provide valid emission factor details.');
       return;
     }
 
@@ -673,17 +690,17 @@ export default function EnvironmentalForms({
 
                     <div className="form-group">
                       <label className="form-label">Description / Invoice</label>
-                      <input type="text" className="form-input" placeholder="e.g. Q3 Fleet Fuel Ingest" value={spendingDesc} onChange={(e) => setSpendingDesc(e.target.value)} required />
+                      <input type="text" className={`form-input ${fieldErrors.spendingDesc ? 'input-error' : ''}`} placeholder="e.g. Q3 Fleet Fuel Ingest" value={spendingDesc} onChange={(e) => setSpendingDesc(e.target.value)} required />
                     </div>
 
                     <div className="grid-cols-2" style={{ gap: '0.75rem' }}>
                       <div className="form-group">
                         <label className="form-label">Spending (USD)</label>
-                        <input type="number" className="form-input" placeholder="$ amount" value={spendingAmount} onChange={(e) => setSpendingAmount(e.target.value)} required min="1" />
+                        <input type="number" className={`form-input ${fieldErrors.spendingAmount ? 'input-error' : ''}`} placeholder="$ amount" value={spendingAmount} onChange={(e) => setSpendingAmount(e.target.value)} required min="0.01" step="any" />
                       </div>
                       <div className="form-group">
                         <label className="form-label">Usage Quantity</label>
-                        <input type="number" className="form-input" placeholder="Liters, kWh, etc" value={spendingQty} onChange={(e) => setSpendingQty(e.target.value)} required min="1" />
+                        <input type="number" className={`form-input ${fieldErrors.spendingQty ? 'input-error' : ''}`} placeholder="Liters, kWh, etc" value={spendingQty} onChange={(e) => setSpendingQty(e.target.value)} required min="0.01" step="any" />
                       </div>
                     </div>
 
@@ -1173,15 +1190,15 @@ export default function EnvironmentalForms({
               <div className="grid-cols-3" style={{ gap: '1rem' }}>
                 <div className="form-group">
                   <label className="form-label">Factor Name</label>
-                  <input type="text" className="form-input" placeholder="e.g. Natural Gas" value={factorName} onChange={(e) => setFactorName(e.target.value)} required />
+                  <input type="text" className={`form-input ${fieldErrors.factorName ? 'input-error' : ''}`} placeholder="e.g. Natural Gas" value={factorName} onChange={(e) => setFactorName(e.target.value)} required />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Calculation Unit</label>
-                  <input type="text" className="form-input" placeholder="e.g. Therms" value={factorUnit} onChange={(e) => setFactorUnit(e.target.value)} required />
+                  <input type="text" className={`form-input ${fieldErrors.factorUnit ? 'input-error' : ''}`} placeholder="e.g. Therms" value={factorUnit} onChange={(e) => setFactorUnit(e.target.value)} required />
                 </div>
                 <div className="form-group">
                   <label className="form-label">CO2e Value (tonnes per unit)</label>
-                  <input type="number" step="0.00001" className="form-input" placeholder="e.g. 0.0053" value={factorValue} onChange={(e) => setFactorValue(e.target.value)} required />
+                  <input type="number" step="0.00001" className={`form-input ${fieldErrors.factorValue ? 'input-error' : ''}`} placeholder="e.g. 0.0053" value={factorValue} onChange={(e) => setFactorValue(e.target.value)} required />
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>

@@ -43,6 +43,7 @@ model Employee {
   acknowledgements    PolicyAcknowledgement[]
   redemptions         RewardRedemption[]
   trainingCompletions TrainingCompletion[]
+  notifications       Notification[]
 }
 
 model Category {
@@ -268,4 +269,14 @@ model SpendingRecord {
   departmentId String
   department   Department @relation(fields: [departmentId], references: [id])
   date         DateTime   @default(now())
+}
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      Employee @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  type      String   // "compliance" | "approval" | "policy" | "badge" | "system"
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
 }

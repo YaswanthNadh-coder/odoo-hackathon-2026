@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { getSession } from '@/lib/session';
+import { createNotification } from '@/lib/notifications';
 
 export async function GET(req: NextRequest) {
   try {
@@ -72,6 +73,24 @@ export async function POST(req: NextRequest) {
         },
         include: { department: true },
       });
+
+      // Attempt to find owner to notify them
+      const employee = await prisma.employee.findFirst({
+        where: {
+          OR: [
+            { email: owner },
+            { name: owner }
+          ]
+        }
+      });
+      if (employee) {
+        await createNotification(
+          employee.id,
+          '🔴 New Compliance Issue Assigned',
+          `You have been assigned a new compliance issue: "${description}". Due on ${new Date(dueDate).toLocaleDateString()}.`,
+          'compliance'
+        );
+      }
 
       return NextResponse.json({ success: true, issue });
     }

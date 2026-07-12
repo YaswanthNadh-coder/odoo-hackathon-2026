@@ -37,12 +37,12 @@ export default async function RootLayout({
             
             <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
               <header className="top-header">
-                <div>
-                  <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>
-                    Organization ESG Control
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                  <h2 style={{ fontSize: '1.35rem', fontWeight: 800, letterSpacing: '-0.02em', background: 'var(--accent-overall-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                    EcoSphere ESG Dashboard
                   </h2>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                   <UserSwitcher session={session} />
                 </div>
               </header>

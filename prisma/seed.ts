@@ -5,6 +5,7 @@ async function main() {
   console.log('Seeding database...');
 
   // 1. Reset database in correct dependency order
+  await prisma.notification.deleteMany();
   await prisma.appConfig.deleteMany();
   await prisma.complianceIssue.deleteMany();
   await prisma.policyAcknowledgement.deleteMany();

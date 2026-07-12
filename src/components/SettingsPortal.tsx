@@ -53,6 +53,7 @@ export default function SettingsPortal({
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Right column active Tab: "depts" | "cats"
   const [activeTab, setActiveTab] = useState<'depts' | 'cats'>('depts');
@@ -139,8 +140,14 @@ export default function SettingsPortal({
   // Department CRUD Actions
   const handleSaveDept = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!deptName || !deptCode) {
-      setErrorMessage('Please provide department name and code.');
+    setFieldErrors({});
+    let errors: Record<string, string> = {};
+    if (!deptName.trim()) errors.deptName = 'Name is required';
+    if (!deptCode.trim()) errors.deptCode = 'Code is required';
+    
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setErrorMessage('Please fix the highlighted errors.');
       return;
     }
 
@@ -235,8 +242,14 @@ export default function SettingsPortal({
   // Category CRUD Actions
   const handleSaveCat = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!catName || !catType) {
-      setErrorMessage('Please provide category name and type.');
+    setFieldErrors({});
+    let errors: Record<string, string> = {};
+    if (!catName.trim()) errors.catName = 'Name is required';
+    if (!catType.trim()) errors.catType = 'Type is required';
+    
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setErrorMessage('Please fix the highlighted errors.');
       return;
     }
 
@@ -575,8 +588,8 @@ export default function SettingsPortal({
               {showDeptForm && isOfficerOrManager && (
                 <form onSubmit={handleSaveDept} style={{ background: 'rgba(255,255,255,0.01)', border: '1px dashed var(--border-glow)', padding: '0.75rem', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                   <h4 style={{ fontSize: '0.85rem' }}>{editingDeptId ? '✏️ Edit Department' : '➕ Create Department'}</h4>
-                  <input type="text" className="form-input" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} placeholder="Name (e.g. Sales)" value={deptName} onChange={(e) => setDeptName(e.target.value)} required />
-                  <input type="text" className="form-input" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} placeholder="Code (e.g. SLS)" value={deptCode} onChange={(e) => setDeptCode(e.target.value)} required />
+                  <input type="text" className={`form-input ${fieldErrors.deptName ? 'input-error' : ''}`} style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} placeholder="Name (e.g. Sales)" value={deptName} onChange={(e) => setDeptName(e.target.value)} required />
+                  <input type="text" className={`form-input ${fieldErrors.deptCode ? 'input-error' : ''}`} style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} placeholder="Code (e.g. SLS)" value={deptCode} onChange={(e) => setDeptCode(e.target.value)} required />
                   <input type="text" className="form-input" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} placeholder="Head Name" value={deptHead} onChange={(e) => setDeptHead(e.target.value)} />
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <input type="number" className="form-input" style={{ flexGrow: 1, padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} placeholder="Staff Count" value={deptEmployeeCount} onChange={(e) => setDeptEmployeeCount(parseInt(e.target.value) || 0)} min="0" />
@@ -638,8 +651,8 @@ export default function SettingsPortal({
               {showCatForm && isOfficerOrManager && (
                 <form onSubmit={handleSaveCat} style={{ background: 'rgba(255,255,255,0.01)', border: '1px dashed var(--border-glow)', padding: '0.75rem', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
                   <h4 style={{ fontSize: '0.85rem' }}>{editingCatId ? '✏️ Edit Category' : '➕ Create Category'}</h4>
-                  <input type="text" className="form-input" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} placeholder="Category Name" value={catName} onChange={(e) => setCatName(e.target.value)} required />
-                  <select className="form-select" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} value={catType} onChange={(e) => setCatType(e.target.value)}>
+                  <input type="text" className={`form-input ${fieldErrors.catName ? 'input-error' : ''}`} style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} placeholder="Category Name" value={catName} onChange={(e) => setCatName(e.target.value)} required />
+                  <select className={`form-select ${fieldErrors.catType ? 'input-error' : ''}`} style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} value={catType} onChange={(e) => setCatType(e.target.value)}>
                     <option value="CSR">CSR Initiative</option>
                     <option value="CHALLENGE">Gamified Challenge</option>
                   </select>

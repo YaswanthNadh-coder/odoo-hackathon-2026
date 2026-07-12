@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { getSession } from '@/lib/session';
+import { createNotification } from '@/lib/notifications';
 
 export async function GET(req: NextRequest) {
   try {
@@ -207,6 +208,13 @@ export async function POST(req: NextRequest) {
                   include: { badge: true },
                 });
                 awardedBadges.push(eb.badge);
+                
+                await createNotification(
+                  session.employeeId,
+                  '🏆 New Badge Unlocked!',
+                  `Congratulations! You have unlocked the "${badge.name}" badge from completing challenges.`,
+                  'badge'
+                );
               }
             } catch (e) {
               console.error('Error parsing badge rule:', e);
