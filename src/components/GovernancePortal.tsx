@@ -82,11 +82,10 @@ export default function GovernancePortal({
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-
-  // ----------------------------------------------------
-  // POLICIES STATE & HANDLERS
-  // ----------------------------------------------------
+  
+  // Policy form fields
   const [showPolicyForm, setShowPolicyForm] = useState(false);
+  const [editingPolicyId, setEditingPolicyId] = useState<string | null>(null);
   const [policyTitle, setPolicyTitle] = useState('');
   const [policyBody, setPolicyBody] = useState('');
 
@@ -116,6 +115,7 @@ export default function GovernancePortal({
     }
   };
 
+  // Create or Edit Policy
   const handleCreatePolicy = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!policyTitle) {
@@ -126,34 +126,55 @@ export default function GovernancePortal({
     setErrorMessage('');
     setSuccessMessage('');
 
+    const url = '/api/governance';
+    const method = editingPolicyId ? 'PUT' : 'POST';
+    const body = editingPolicyId ? {
+      id: editingPolicyId,
+      title: policyTitle,
+      body: policyBody,
+    } : {
+      action: 'create-policy',
+      title: policyTitle,
+      body: policyBody,
+    };
+
     try {
-      const res = await fetch('/api/governance', {
-        method: 'POST',
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'create-policy',
-          title: policyTitle,
-          body: policyBody,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (res.ok) {
-        setSuccessMessage('New ESG Policy created successfully!');
-        setPolicyTitle('');
-        setPolicyBody('');
-        setShowPolicyForm(false);
+        setSuccessMessage(editingPolicyId ? 'ESG Policy updated successfully!' : 'New ESG Policy created successfully!');
+        resetPolicyForm();
         router.refresh();
       } else {
         const data = await res.json();
-        setErrorMessage(data.error || 'Failed to create policy.');
+        setErrorMessage(data.error || 'Failed to save policy.');
       }
     } catch {
-      setErrorMessage('Error creating policy.');
+      setErrorMessage('Error saving policy.');
     } finally {
       setSubmitting(false);
     }
   };
 
+  const handleEditPolicyClick = (policy: Policy) => {
+    setEditingPolicyId(policy.id);
+    setPolicyTitle(policy.title);
+    setPolicyBody(policy.body || '');
+    setShowPolicyForm(true);
+  };
+
+  const resetPolicyForm = () => {
+    setEditingPolicyId(null);
+    setPolicyTitle('');
+    setPolicyBody('');
+    setShowPolicyForm(false);
+  };
+
+  // Delete Policy
   const handleDeletePolicy = async (policyId: string) => {
     if (!confirm('Are you sure you want to delete this policy?')) {
       return;
@@ -463,7 +484,9 @@ export default function GovernancePortal({
           {/* Create Policy Form */}
           {showPolicyForm && isOfficerOrManager && (
             <div className="glass-card mb-6" style={{ borderLeft: '4px solid var(--accent-overall)' }}>
-              <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem' }}>Establish New Corporate ESG Policy</h3>
+              <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem' }}>
+                {editingPolicyId ? '✏️ Edit Corporate ESG Policy' : 'Establish New Corporate ESG Policy'}
+              </h3>
               <form onSubmit={handleCreatePolicy} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div className="form-group">
                   <label className="form-label">Policy Title</label>
@@ -474,8 +497,10 @@ export default function GovernancePortal({
                   <textarea className="form-textarea" rows={4} placeholder="Detail the policies standards..." value={policyBody} onChange={(e) => setPolicyBody(e.target.value)} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowPolicyForm(false)}>Cancel</button>
-                  <button type="submit" className="btn btn-env" disabled={submitting}>💾 Publish Policy</button>
+                  <button type="button" className="btn btn-secondary" onClick={resetPolicyForm}>Cancel</button>
+                  <button type="submit" className="btn btn-env" disabled={submitting}>
+                    {editingPolicyId ? '💾 Save Changes' : '💾 Publish Policy'}
+                  </button>
                 </div>
               </form>
             </div>
@@ -495,9 +520,14 @@ export default function GovernancePortal({
                         <span className="pill pill-warning" style={{ fontSize: '0.65rem' }}>⚠ Required</span>
                       )}
                       {isOfficerOrManager && (
-                        <button className="btn" style={{ padding: '0.2rem', background: 'transparent' }} onClick={() => handleDeletePolicy(policy.id)}>
-                          🗑️
-                        </button>
+                        <div style={{ display: 'flex', gap: '0.25rem' }}>
+                          <button className="btn" style={{ padding: '0.2rem', background: 'transparent' }} onClick={() => handleEditPolicyClick(policy)}>
+                            ✏️
+                          </button>
+                          <button className="btn" style={{ padding: '0.2rem', background: 'transparent' }} onClick={() => handleDeletePolicy(policy.id)}>
+                            🗑️
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>

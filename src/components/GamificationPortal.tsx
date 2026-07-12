@@ -101,6 +101,7 @@ export default function GamificationPortal({
   // CHALLENGE STATE & HANDLERS
   // ----------------------------------------------------
   const [showChallengeForm, setShowChallengeForm] = useState(false);
+  const [editingChallengeId, setEditingChallengeId] = useState<string | null>(null);
   const [challengeTitle, setChallengeTitle] = useState('');
   const [challengeDesc, setChallengeDesc] = useState('');
   const [challengeXp, setChallengeXp] = useState('100');
@@ -110,6 +111,15 @@ export default function GamificationPortal({
 
   // Redeeming state
   const [redeemingId, setRedeemingId] = useState<string | null>(null);
+
+  // Rewards Management state
+  const [rewardActiveTab, setRewardActiveTab] = useState<'redeem' | 'manage'>('redeem');
+  const [showRewardForm, setShowRewardForm] = useState(false);
+  const [editingRewardId, setEditingRewardId] = useState<string | null>(null);
+  const [rewardName, setRewardName] = useState('');
+  const [rewardDesc, setRewardDesc] = useState('');
+  const [rewardPoints, setRewardPoints] = useState('');
+  const [rewardStock, setRewardStock] = useState('');
 
   const isOfficerOrManager = currentUser && (currentUser.role === 'officer' || currentUser.role === 'manager');
 
@@ -188,6 +198,7 @@ export default function GamificationPortal({
     }
   };
 
+  // Create or Edit Challenge
   const handleCreateChallenge = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!challengeTitle || !challengeXp || isNaN(parseInt(challengeXp))) {
@@ -198,42 +209,71 @@ export default function GamificationPortal({
     setErrorMessage('');
     setSuccessMessage('');
 
+    const url = '/api/gamification';
+    const method = editingChallengeId ? 'PUT' : 'POST';
+    const body = editingChallengeId ? {
+      id: editingChallengeId,
+      title: challengeTitle,
+      description: challengeDesc,
+      xp: parseInt(challengeXp),
+      difficulty: challengeDifficulty,
+      deadline: challengeDeadline ? new Date(challengeDeadline) : null,
+      evidenceRequired: challengeEvidenceRequired,
+    } : {
+      action: 'create-challenge',
+      title: challengeTitle,
+      description: challengeDesc,
+      xp: parseInt(challengeXp),
+      difficulty: challengeDifficulty,
+      deadline: challengeDeadline ? new Date(challengeDeadline) : null,
+      evidenceRequired: challengeEvidenceRequired,
+    };
+
     try {
-      const res = await fetch('/api/gamification', {
-        method: 'POST',
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'create-challenge',
-          title: challengeTitle,
-          description: challengeDesc,
-          xp: parseInt(challengeXp),
-          difficulty: challengeDifficulty,
-          deadline: challengeDeadline ? new Date(challengeDeadline) : null,
-          evidenceRequired: challengeEvidenceRequired,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (res.ok) {
-        setSuccessMessage('New Gamified Challenge published successfully!');
-        setChallengeTitle('');
-        setChallengeDesc('');
-        setChallengeXp('100');
-        setChallengeDifficulty('medium');
-        setChallengeDeadline('');
-        setChallengeEvidenceRequired(false);
-        setShowChallengeForm(false);
+        setSuccessMessage(editingChallengeId ? 'Challenge updated successfully!' : 'New Gamified Challenge published successfully!');
+        resetChallengeForm();
         router.refresh();
       } else {
         const data = await res.json();
-        setErrorMessage(data.error || 'Failed to create challenge.');
+        setErrorMessage(data.error || 'Failed to save challenge.');
       }
     } catch {
-      setErrorMessage('Error creating challenge.');
+      setErrorMessage('Error saving challenge.');
     } finally {
       setSubmitting(false);
     }
   };
 
+  const handleEditChallengeClick = (ch: Challenge) => {
+    setEditingChallengeId(ch.id);
+    setChallengeTitle(ch.title);
+    setChallengeDesc(ch.description || '');
+    setChallengeXp(String(ch.xp));
+    setChallengeDifficulty(ch.difficulty);
+    setChallengeDeadline(ch.deadline ? ch.deadline.substring(0, 10) : '');
+    setChallengeEvidenceRequired(ch.evidenceRequired || false);
+    setShowChallengeForm(true);
+  };
+
+  const resetChallengeForm = () => {
+    setEditingChallengeId(null);
+    setChallengeTitle('');
+    setChallengeDesc('');
+    setChallengeXp('100');
+    setChallengeDifficulty('medium');
+    setChallengeDeadline('');
+    setChallengeEvidenceRequired(false);
+    setShowChallengeForm(false);
+  };
+
+  // Delete Challenge
   const handleDeleteChallenge = async (challengeId: string) => {
     if (!confirm('Are you sure you want to delete this challenge?')) {
       return;
@@ -261,56 +301,92 @@ export default function GamificationPortal({
     }
   };
 
-  // ----------------------------------------------------
-  // REWARDS STATE & HANDLERS
-  // ----------------------------------------------------
-  const [showRewardForm, setShowRewardForm] = useState(false);
-  const [rewardName, setRewardName] = useState('');
-  const [rewardDesc, setRewardDesc] = useState('');
-  const [rewardPoints, setRewardPoints] = useState('100');
-  const [rewardStock, setRewardStock] = useState('5');
-
-  const handleCreateReward = async (e: React.FormEvent) => {
+  // Rewards Catalog CRUD actions
+  const handleSaveReward = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!rewardName || !rewardPoints || !rewardStock) {
-      setErrorMessage('Please fill in name, points required, and stock levels.');
+      setErrorMessage('Please fill in all reward fields.');
       return;
     }
+    setSubmitting(true);
+    setErrorMessage('');
+    setSuccessMessage('');
 
+    const url = '/api/gamification/rewards';
+    const method = editingRewardId ? 'PUT' : 'POST';
+    const body = {
+      id: editingRewardId,
+      name: rewardName,
+      description: rewardDesc,
+      pointsRequired: parseInt(rewardPoints),
+      stock: parseInt(rewardStock),
+    };
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (res.ok) {
+        setSuccessMessage(editingRewardId ? 'Reward updated successfully!' : 'New Reward added to catalog!');
+        resetRewardForm();
+        router.refresh();
+      } else {
+        const data = await res.json();
+        setErrorMessage(data.error || 'Failed to save reward.');
+      }
+    } catch {
+      setErrorMessage('Error saving reward details.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEditRewardClick = (rew: Reward) => {
+    setEditingRewardId(rew.id);
+    setRewardName(rew.name);
+    setRewardDesc(rew.description || '');
+    setRewardPoints(String(rew.pointsRequired));
+    setRewardStock(String(rew.stock));
+    setShowRewardForm(true);
+  };
+
+  const handleDeleteReward = async (rewardId: string) => {
+    if (!confirm('Are you sure you want to delete this reward from the catalog?')) {
+      return;
+    }
     setSubmitting(true);
     setErrorMessage('');
     setSuccessMessage('');
 
     try {
-      const res = await fetch('/api/rewards', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'create-reward',
-          name: rewardName,
-          description: rewardDesc,
-          pointsRequired: parseInt(rewardPoints),
-          stock: parseInt(rewardStock),
-        }),
+      const res = await fetch(`/api/gamification/rewards?id=${rewardId}`, {
+        method: 'DELETE',
       });
 
       if (res.ok) {
-        setSuccessMessage('New Reward catalog incentive added successfully!');
-        setRewardName('');
-        setRewardDesc('');
-        setRewardPoints('100');
-        setRewardStock('5');
-        setShowRewardForm(false);
+        setSuccessMessage('Reward deleted successfully.');
         router.refresh();
       } else {
         const data = await res.json();
-        setErrorMessage(data.error || 'Failed to create reward catalog.');
+        setErrorMessage(data.error || 'Failed to delete reward.');
       }
-    } catch (err) {
-      setErrorMessage('Error adding reward item.');
+    } catch {
+      setErrorMessage('Error deleting reward.');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const resetRewardForm = () => {
+    setEditingRewardId(null);
+    setRewardName('');
+    setRewardDesc('');
+    setRewardPoints('');
+    setRewardStock('');
+    setShowRewardForm(false);
   };
 
   const handleRedeemReward = async (rewardId: string) => {
@@ -318,20 +394,20 @@ export default function GamificationPortal({
       return;
     }
 
-    setSubmitting(true);
+    setRedeemingId(rewardId);
     setErrorMessage('');
     setSuccessMessage('');
 
     try {
-      const res = await fetch('/api/rewards', {
+      const res = await fetch('/api/gamification/redeem', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'redeem', rewardId }),
+        body: JSON.stringify({ rewardId }),
       });
 
       const data = await res.json();
       if (res.ok) {
-        setSuccessMessage(`Redeemed successfully! Redemptions code: ${data.redemption.id}. Deducted ${data.redemption.pointsSpent} points from your balance.`);
+        setSuccessMessage(`Redeemed ${data.rewardName} successfully! Deducted points from balance. remaining balance: ${data.pointsRemaining} Pts.`);
         router.refresh();
       } else {
         setErrorMessage(data.error || 'Failed to redeem reward.');
@@ -339,35 +415,7 @@ export default function GamificationPortal({
     } catch {
       setErrorMessage('Unexpected error during redemption.');
     } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleDeleteReward = async (id: string) => {
-    if (!confirm('Are you sure you want to delete/disable this reward item?')) {
-      return;
-    }
-
-    setSubmitting(true);
-    setErrorMessage('');
-    setSuccessMessage('');
-
-    try {
-      const res = await fetch(`/api/rewards?id=${id}`, {
-        method: 'DELETE',
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        setSuccessMessage(data.message || 'Reward catalog item deleted.');
-        router.refresh();
-      } else {
-        setErrorMessage(data.error || 'Failed to delete reward.');
-      }
-    } catch (err) {
-      setErrorMessage('Error deleting reward.');
-    } finally {
-      setSubmitting(false);
+      setRedeemingId(null);
     }
   };
 
@@ -497,7 +545,9 @@ export default function GamificationPortal({
             {/* Create Challenge Form */}
             {showChallengeForm && isOfficerOrManager && (
               <div className="glass-card mb-6" style={{ borderLeft: '4px solid var(--accent-social)' }}>
-                <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem' }}>Design New Sustainability Challenge</h3>
+                <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem' }}>
+                  {editingChallengeId ? '✏️ Edit Sustainability Challenge' : 'Design New Sustainability Challenge'}
+                </h3>
                 <form onSubmit={handleCreateChallenge} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   <div className="grid-cols-3" style={{ gap: '1rem' }}>
                     <div className="form-group">
@@ -534,8 +584,10 @@ export default function GamificationPortal({
                     </label>
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                    <button type="button" className="btn btn-secondary" onClick={() => setShowChallengeForm(false)}>Cancel</button>
-                    <button type="submit" className="btn btn-env" disabled={submitting}>💾 Publish Challenge</button>
+                    <button type="button" className="btn btn-secondary" onClick={resetChallengeForm}>Cancel</button>
+                    <button type="submit" className="btn btn-env" disabled={submitting}>
+                      {editingChallengeId ? '💾 Save Changes' : '💾 Publish Challenge'}
+                    </button>
                   </div>
                 </form>
               </div>
@@ -571,9 +623,14 @@ export default function GamificationPortal({
                           ⭐ +{ch.xp} XP
                         </span>
                         {isOfficerOrManager && (
-                          <button className="btn" style={{ padding: '0.1rem', background: 'transparent' }} onClick={() => handleDeleteChallenge(ch.id)}>
-                            🗑️
-                          </button>
+                          <div style={{ display: 'flex', gap: '0.25rem' }}>
+                            <button className="btn" style={{ padding: '0.1rem', background: 'transparent' }} onClick={() => handleEditChallengeClick(ch)}>
+                              ✏️
+                            </button>
+                            <button className="btn" style={{ padding: '0.1rem', background: 'transparent' }} onClick={() => handleDeleteChallenge(ch.id)}>
+                              🗑️
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -709,102 +766,173 @@ export default function GamificationPortal({
           ---------------------------------------------------- */}
       {activeTab === 'rewards' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div className="flex-between">
-            <div>
-              <h3 style={{ fontSize: '1.25rem' }}>⚡ Eco-Incentive Catalog</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.825rem', marginTop: '0.25rem' }}>
-                Redeem your earned sustainability points for real-world environmental incentives.
-              </p>
+          <div>
+            <div className="flex-between mb-6">
+              <div>
+                <h3 style={{ fontSize: '1.25rem' }}>🛍️ ESG Incentives & Rewards Store</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.825rem', marginTop: '0.25rem' }}>
+                  Redeem your earned sustainability points for real-world environmental incentives.
+                </p>
+              </div>
+              {isOfficerOrManager && (
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button 
+                    className="btn btn-secondary" 
+                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', background: rewardActiveTab === 'redeem' ? 'rgba(255,255,255,0.06)' : 'transparent' }}
+                    onClick={() => setRewardActiveTab('redeem')}
+                  >
+                    Catalog View
+                  </button>
+                  <button 
+                    className="btn btn-secondary" 
+                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', background: rewardActiveTab === 'manage' ? 'rgba(255,255,255,0.06)' : 'transparent' }}
+                    onClick={() => setRewardActiveTab('manage')}
+                  >
+                    ⚙️ Manage Catalog
+                  </button>
+                </div>
+              )}
             </div>
-            {isOfficerOrManager && !showRewardForm && (
-              <button className="btn btn-env" onClick={() => setShowRewardForm(true)}>
-                ➕ Add Reward Item
-              </button>
-            )}
-          </div>
 
-          {/* Create Reward Form */}
-          {showRewardForm && isOfficerOrManager && (
-            <div className="glass-card" style={{ borderLeft: '4px solid var(--accent-overall)' }}>
-              <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem' }}>Add New Reward Item to Catalog</h3>
-              <form onSubmit={handleCreateReward} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div className="grid-cols-2" style={{ gap: '1rem' }}>
-                  <div className="form-group">
-                    <label className="form-label">Reward Name</label>
-                    <input type="text" className="form-input" placeholder="e.g. Stainless Steel Thermal Flask" value={rewardName} onChange={(e) => setRewardName(e.target.value)} required />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Points Required to Redeem</label>
-                    <input type="number" className="form-input" placeholder="e.g. 120" value={rewardPoints} onChange={(e) => setRewardPoints(e.target.value)} min="1" required />
-                  </div>
-                </div>
-                <div className="grid-cols-2" style={{ gap: '1rem' }}>
-                  <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                    <label className="form-label">Description</label>
-                    <input type="text" className="form-input" placeholder="Describe the item..." value={rewardDesc} onChange={(e) => setRewardDesc(e.target.value)} />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Stock Quantity Available</label>
-                    <input type="number" className="form-input" placeholder="e.g. 10" value={rewardStock} onChange={(e) => setRewardStock(e.target.value)} min="0" required />
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                  <button type="button" className="btn btn-secondary" onClick={() => setShowRewardForm(false)}>Cancel</button>
-                  <button type="submit" className="btn btn-env" disabled={submitting}>Announce Reward Item</button>
-                </div>
-              </form>
-            </div>
-          )}
+            {rewardActiveTab === 'redeem' ? (
+              <div className="grid-cols-3">
+                {rewards.map((reward) => {
+                  const canAfford = activePoints >= reward.pointsRequired;
+                  const hasStock = reward.stock > 0;
+                  const isRedeeming = redeemingId === reward.id;
 
-          {/* Reward Catalog Items Grid */}
-          <div className="grid-cols-3" style={{ gap: '1rem' }}>
-            {rewards.map((reward) => {
-              const hasStock = reward.stock > 0;
-              const hasPoints = activePoints >= reward.pointsRequired;
-              const isInactive = reward.status !== 'active';
-              
-              const borderStyle = isInactive 
-                ? '1px dashed var(--border-glow)' 
-                : hasStock 
-                ? '1.5px solid rgba(6, 182, 212, 0.15)' 
-                : '1px solid var(--border-glow)';
+                  return (
+                    <div
+                      key={reward.id}
+                      className="glass-card"
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        minHeight: '180px',
+                        border: hasStock ? '1px solid var(--border-glow)' : '1px solid rgba(255, 0, 0, 0.1)',
+                        opacity: hasStock ? 1 : 0.6,
+                      }}
+                    >
+                      <div className="flex-between" style={{ marginBottom: '0.5rem' }}>
+                        <span className={`pill ${hasStock ? 'pill-info' : 'pill-error'}`} style={{ fontSize: '0.65rem' }}>
+                          {hasStock ? `Stock: ${reward.stock} left` : 'OUT OF STOCK'}
+                        </span>
+                        <span style={{ fontWeight: 700, color: 'var(--accent-gov)', fontSize: '0.9rem' }}>
+                          ⚡ {reward.pointsRequired} Pts
+                        </span>
+                      </div>
 
-              return (
-                <div key={reward.id} className="glass-card" style={{ display: 'flex', flexDirection: 'column', height: '220px', border: borderStyle, opacity: isInactive ? 0.5 : 1 }}>
+                      <h4 style={{ fontSize: '1.05rem', fontWeight: 700 }}>{reward.name}</h4>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.25rem', flexGrow: 1 }}>
+                        {reward.description || 'No description available.'}
+                      </p>
+
+                      <div style={{ marginTop: '1rem' }}>
+                        <button
+                          className={`btn ${canAfford && hasStock ? 'btn-env' : 'btn-secondary'}`}
+                          style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem' }}
+                          onClick={() => handleRedeemReward(reward.id)}
+                          disabled={isRedeeming || !canAfford || !hasStock}
+                        >
+                          {isRedeeming
+                            ? 'Redeeming...'
+                            : !hasStock
+                            ? 'Out of Stock'
+                            : !canAfford
+                            ? `Need ${reward.pointsRequired - activePoints} more Points`
+                            : '🛒 Redeem Reward'}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              isOfficerOrManager && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   <div className="flex-between">
-                    <span style={{ fontSize: '0.8rem', color: 'var(--accent-gov)', fontWeight: 700 }}>⚡ {reward.pointsRequired} Points</span>
-                    <span className={`pill ${hasStock ? 'pill-success' : 'pill-error'}`} style={{ fontSize: '0.6rem' }}>
-                      {isInactive ? 'INACTIVE' : hasStock ? `${reward.stock} in stock` : 'OUT OF STOCK'}
-                    </span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Catalog Inventory</span>
+                    {!showRewardForm && (
+                      <button className="btn btn-env" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }} onClick={() => setShowRewardForm(true)}>
+                        ➕ Add New Reward
+                      </button>
+                    )}
                   </div>
 
-                  <h4 style={{ fontWeight: 700, fontSize: '1rem', marginTop: '0.5rem' }}>{reward.name}</h4>
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.35rem', flexGrow: 1, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
-                    {reward.description || 'No description listed.'}
-                  </p>
+                  {showRewardForm && (
+                    <div className="glass-card mb-6" style={{ borderLeft: '4px solid var(--accent-gov)' }}>
+                      <h4 style={{ fontSize: '1rem', marginBottom: '1rem' }}>
+                        {editingRewardId ? '✏️ Edit Catalog Reward Item' : '➕ Create New Catalog Reward Item'}
+                      </h4>
+                      <form onSubmit={handleSaveReward} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div className="grid-cols-3" style={{ gap: '1rem' }}>
+                          <div className="form-group">
+                            <label className="form-label">Reward Name</label>
+                            <input type="text" className="form-input" placeholder="e.g. KeepCup Thermo" value={rewardName} onChange={(e) => setRewardName(e.target.value)} required />
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label">Points Cost</label>
+                            <input type="number" className="form-input" placeholder="e.g. 200" value={rewardPoints} onChange={(e) => setRewardPoints(e.target.value)} required min="1" />
+                          </div>
+                          <div className="form-group">
+                            <label className="form-label">Available Stock</label>
+                            <input type="number" className="form-input" placeholder="e.g. 15" value={rewardStock} onChange={(e) => setRewardStock(e.target.value)} required min="0" />
+                          </div>
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Description</label>
+                          <input type="text" className="form-input" placeholder="e.g. Dual-wall vacuum insulated stainless steel tumbler..." value={rewardDesc} onChange={(e) => setRewardDesc(e.target.value)} />
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                          <button type="button" className="btn btn-secondary" onClick={resetRewardForm}>Cancel</button>
+                          <button type="submit" className="btn btn-env" disabled={submitting}>
+                            {editingRewardId ? '💾 Save Changes' : '💾 Add Item'}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  )}
 
-                  <div style={{ display: 'flex', gap: '0.35rem', marginTop: 'auto', paddingTop: '0.5rem' }}>
-                    {isInactive ? (
-                      <button className="btn btn-secondary" style={{ width: '100%', fontSize: '0.75rem', cursor: 'default' }} disabled>Unavailable</button>
-                    ) : hasStock ? (
-                      <button
-                        className={hasPoints ? 'btn btn-env' : 'btn btn-secondary'}
-                        style={{ flexGrow: 1, fontSize: '0.75rem' }}
-                        onClick={() => handleRedeemReward(reward.id)}
-                        disabled={submitting || !hasPoints}
-                      >
-                        {hasPoints ? '🛍️ Redeem Incentive' : '🔒 Insufficient Points'}
-                      </button>
-                    ) : (
-                      <button className="btn btn-secondary" style={{ flexGrow: 1, fontSize: '0.75rem' }} disabled>Out of Stock</button>
-                    )}
-                    {isOfficerOrManager && (
-                      <button className="btn" style={{ padding: '0.25rem', background: 'transparent' }} onClick={() => handleDeleteReward(reward.id)}>🗑️</button>
-                    )}
+                  <div className="table-container">
+                    <table className="custom-table">
+                      <thead>
+                        <tr>
+                          <th>Item Name</th>
+                          <th>Points Cost</th>
+                          <th>Stock</th>
+                          <th>Status</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rewards.map((rew) => (
+                          <tr key={rew.id}>
+                            <td style={{ fontWeight: 600 }}>{rew.name}</td>
+                            <td style={{ fontWeight: 600, color: 'var(--accent-gov)' }}>⚡ {rew.pointsRequired} Pts</td>
+                            <td>{rew.stock} units</td>
+                            <td>
+                              <span className={`pill ${rew.stock > 0 ? 'pill-success' : 'pill-error'}`} style={{ fontSize: '0.65rem' }}>
+                                {rew.stock > 0 ? 'ACTIVE' : 'OUT OF STOCK'}
+                              </span>
+                            </td>
+                            <td>
+                              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => handleEditRewardClick(rew)}>
+                                  ✏️ Edit
+                                </button>
+                                <button className="btn" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', background: 'transparent' }} onClick={() => handleDeleteReward(rew.id)}>
+                                  🗑️ Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
-              );
-            })}
+              )
+            )}
           </div>
 
           {/* Redemptions Log */}
