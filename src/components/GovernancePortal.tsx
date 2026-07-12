@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { formatDate } from '@/lib/date';
 
 interface Policy {
   id: string;
@@ -483,7 +484,7 @@ export default function GovernancePortal({
                     <td style={{ fontWeight: 500 }}>{issue.owner}</td>
                     <td>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
-                        <span>{new Date(issue.dueDate).toLocaleDateString()}</span>
+                        <span>{formatDate(issue.dueDate)}</span>
                         {isOverdue && (
                           <span className="pill pill-error" style={{ fontSize: '0.55rem', padding: '0.1rem 0.35rem', alignSelf: 'flex-start' }}>
                             ⏰ OVERDUE

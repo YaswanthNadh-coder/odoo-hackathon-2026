@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { calculateESGStats } from '@/lib/esg-calc';
 import prisma from '@/lib/db';
 import { getSession } from '@/lib/session';
+import { formatDate } from '@/lib/date';
 
 export const revalidate = 0; // Disable caching so it always gets the latest data
 
@@ -332,7 +333,7 @@ export default async function DashboardPage() {
                 </div>
                 <p style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-primary)' }}>{issue.description}</p>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-                  Owner: {issue.owner} | Due: {new Date(issue.dueDate).toLocaleDateString()}
+                  Owner: {issue.owner} | Due: {formatDate(issue.dueDate)}
                 </div>
               </div>
             ))}

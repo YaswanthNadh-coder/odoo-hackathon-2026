@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { formatDate } from '@/lib/date';
 
 interface CSRActivity {
   id: string;
@@ -403,7 +404,7 @@ export default function SocialPortal({
                 </p>
                 <div className="flex-between" style={{ marginTop: 'auto', paddingTop: '0.5rem' }}>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    📅 {new Date(act.date).toLocaleDateString()}
+                    📅 {formatDate(act.date)}
                   </span>
                   
                   {isRegistered ? (
@@ -455,7 +456,7 @@ export default function SocialPortal({
               {historyParticipations.map((part) => (
                 <tr key={part.id}>
                   <td style={{ fontSize: '0.85rem' }}>
-                    {part.completedAt ? new Date(part.completedAt).toLocaleDateString() : 'N/A'}
+                    {part.completedAt ? formatDate(part.completedAt) : 'N/A'}
                   </td>
                   <td style={{ fontWeight: 600 }}>{part.employee.name}</td>
                   <td>{part.employee.department.name}</td>

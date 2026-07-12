@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { formatDateTime } from '@/lib/date';
 
 interface Transaction {
   id: string;
@@ -104,7 +105,7 @@ export default function TransactionsTable({
           {transactions.map((tx) => (
             <tr key={tx.id}>
               <td style={{ fontSize: '0.85rem' }}>
-                {new Date(tx.date).toLocaleDateString()} {new Date(tx.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {formatDateTime(tx.date)}
               </td>
               <td style={{ fontWeight: 600 }}>{tx.department.name}</td>
               <td>
