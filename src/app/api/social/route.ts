@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { getSession } from '@/lib/session';
+import { createNotification } from '@/lib/notifications';
 
 export async function GET(req: NextRequest) {
   try {
@@ -83,6 +84,22 @@ export async function POST(req: NextRequest) {
           employee: true,
         },
       });
+
+      // Find all managers and officers to notify them of the request
+      const managers = await prisma.employee.findMany({
+        where: {
+          role: { in: ['manager', 'officer'] },
+        },
+      });
+
+      for (const mgr of managers) {
+        await createNotification(
+          mgr.id,
+          '📥 New Approval Request',
+          `${updated.employee.name} requested approval for CSR Activity: "${updated.activity.title}".`,
+          'approval'
+        );
+      }
 
       return NextResponse.json(updated);
     }

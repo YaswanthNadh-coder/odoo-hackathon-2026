@@ -4,6 +4,7 @@ import { hashPassword } from '../src/lib/auth';
 async function main() {
   console.log('Seeding database...');
 
+  await prisma.notification.deleteMany();
   await prisma.audit.deleteMany();
   await prisma.employeeTraining.deleteMany();
   await prisma.trainingCourse.deleteMany();

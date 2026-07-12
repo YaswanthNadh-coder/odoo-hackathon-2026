@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import NotificationBell from './NotificationBell';
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -14,9 +15,12 @@ export default function Sidebar() {
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-logo">
-        <div className="sidebar-logo-icon">🌿</div>
-        <span>EcoSphere</span>
+      <div className="sidebar-logo" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div className="sidebar-logo-icon">🌿</div>
+          <span>EcoSphere</span>
+        </div>
+        <NotificationBell />
       </div>
 
       <nav style={{ flexGrow: 1 }}>

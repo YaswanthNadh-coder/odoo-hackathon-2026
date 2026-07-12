@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db';
 import { getSession } from '@/lib/session';
+import { createNotification } from '@/lib/notifications';
 
 export async function POST(req: NextRequest) {
   try {
@@ -109,6 +110,13 @@ export async function POST(req: NextRequest) {
                 include: { badge: true },
               });
               awardedBadges.push(eb.badge);
+              
+              await createNotification(
+                part.employeeId,
+                '🏆 New Badge Unlocked!',
+                `Congratulations! You have unlocked the "${badge.name}" badge.`,
+                'badge'
+              );
             }
           } catch (e) {
             console.error('Error parsing badge rule:', e);
@@ -124,6 +132,22 @@ export async function POST(req: NextRequest) {
           pointsEarned: 0,
         },
       });
+    }
+
+    if (status === 'approved') {
+      await createNotification(
+        part.employeeId,
+        '✅ CSR Activity Approved',
+        `Your participation in "${part.activity.title}" has been approved. You earned 50 XP and 20 Points!`,
+        'approval'
+      );
+    } else {
+      await createNotification(
+        part.employeeId,
+        '❌ CSR Activity Rejected',
+        `Your participation in "${part.activity.title}" was not approved.`,
+        'approval'
+      );
     }
 
     return NextResponse.json({
