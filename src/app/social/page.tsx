@@ -41,6 +41,7 @@ export default async function SocialPage() {
   const serializedParticipations = participations.map((p) => ({
     id: p.id,
     employeeId: p.employeeId,
+    activityId: p.activityId,
     approvalStatus: p.approvalStatus,
     proofUrl: p.proofUrl,
     pointsEarned: p.pointsEarned,
