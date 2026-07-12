@@ -36,10 +36,14 @@ export async function PUT(req: NextRequest) {
         data: { isRead: true },
       });
     } else {
-      await prisma.notification.update({
-        where: { id, userId: session.employeeId },
-        data: { isRead: true },
-      });
+      // Verify ownership before marking as read
+      const notif = await prisma.notification.findUnique({ where: { id } });
+      if (notif && notif.userId === session.employeeId) {
+        await prisma.notification.update({
+          where: { id },
+          data: { isRead: true },
+        });
+      }
     }
 
     return NextResponse.json({ success: true });
