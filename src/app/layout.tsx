@@ -3,7 +3,8 @@ import './globals.css';
 import Sidebar from '@/components/Sidebar';
 import UserSwitcher from '@/components/UserSwitcher';
 import { getSession } from '@/lib/session';
-import prisma from '@/lib/db';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 
 export const metadata: Metadata = {
   title: 'EcoSphere - ESG Management Platform',
@@ -16,39 +17,45 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await getSession();
+  
+  const headersList = await headers();
+  const pathname = headersList.get('x-pathname') || '';
+  const isLoginPage = pathname === '/login';
 
-  // Fetch all employees for the global switcher
-  const employees = await prisma.employee.findMany({
-    include: { department: true },
-    orderBy: { name: 'asc' },
-  });
+  // If session is invalid and they aren't on the login page, redirect to /login
+  if (!session && !isLoginPage) {
+    redirect('/login');
+  }
 
   return (
     <html lang="en">
       <body>
-        <div className="app-container">
-          <Sidebar session={session} />
-          
-          <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-            <header className="top-header">
-              <div>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>
-                  Organization ESG Control
-                </h2>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <UserSwitcher 
-                  currentEmployeeId={session?.employeeId || ''} 
-                  employees={employees} 
-                />
-              </div>
-            </header>
+        {!session ? (
+          <main style={{ minHeight: '100vh', width: '100%' }}>
+            {children}
+          </main>
+        ) : (
+          <div className="app-container">
+            <Sidebar />
+            
+            <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+              <header className="top-header">
+                <div>
+                  <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>
+                    Organization ESG Control
+                  </h2>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <UserSwitcher session={session} />
+                </div>
+              </header>
 
-            <main className="main-content">
-              {children}
-            </main>
+              <main className="main-content">
+                {children}
+              </main>
+            </div>
           </div>
-        </div>
+        )}
       </body>
     </html>
   );

@@ -12,7 +12,7 @@ export default async function GovernancePage() {
     include: {
       acknowledgements: session ? {
         where: { employeeId: session.employeeId },
-      } : false,
+      } : undefined,
     },
   });
 
@@ -47,9 +47,9 @@ export default async function GovernancePage() {
     id: policy.id,
     title: policy.title,
     body: policy.body,
-    acknowledgements: policy.acknowledgements.map((ack) => ({
+    acknowledgements: policy.acknowledgements ? policy.acknowledgements.map((ack) => ({
       id: ack.id,
-    })),
+    })) : [],
   }));
 
   const serializedDepartments = departments.map((dept) => ({

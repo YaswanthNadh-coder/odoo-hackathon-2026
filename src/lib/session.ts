@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import prisma from './db';
+import { verifyToken, signToken } from './auth';
 
 export interface UserSession {
   employeeId: string;
@@ -11,53 +12,76 @@ export interface UserSession {
 }
 
 export async function getSession(): Promise<UserSession | null> {
-  const cookieStore = await cookies();
-  const sessionCookie = cookieStore.get('ecosphere_session');
-  
-  let employeeId = sessionCookie?.value;
-
-  // Fallback to the first employee (John Doe) if no session cookie exists
-  if (!employeeId) {
-    const firstEmp = await prisma.employee.findFirst({
-      where: { name: 'John Doe' },
-    });
-    if (firstEmp) {
-      employeeId = firstEmp.id;
-    } else {
+  try {
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('ecosphere_session');
+    
+    if (!sessionCookie || !sessionCookie.value) {
       return null;
     }
+
+    // Verify token cryptographically
+    const employeeId = verifyToken(sessionCookie.value);
+    if (!employeeId) {
+      return null;
+    }
+
+    const employee = await prisma.employee.findUnique({
+      where: { id: employeeId },
+      include: { department: true },
+    });
+
+    if (!employee) return null;
+
+    return {
+      employeeId: employee.id,
+      name: employee.name,
+      role: employee.role,
+      departmentId: employee.departmentId,
+      departmentName: employee.department.name,
+      departmentCode: employee.department.code,
+    };
+  } catch (err: any) {
+    // Rethrow Next.js dynamic rendering signals
+    if (err && err.digest === 'DYNAMIC_SERVER_USAGE') {
+      throw err;
+    }
+    return null;
   }
-
-  const employee = await prisma.employee.findUnique({
-    where: { id: employeeId },
-    include: { department: true },
-  });
-
-  if (!employee) return null;
-
-  return {
-    employeeId: employee.id,
-    name: employee.name,
-    role: employee.role,
-    departmentId: employee.departmentId,
-    departmentName: employee.department.name,
-    departmentCode: employee.department.code,
-  };
 }
 
 export async function setSession(employeeId: string): Promise<boolean> {
-  const employee = await prisma.employee.findUnique({
-    where: { id: employeeId },
-  });
+  try {
+    const employee = await prisma.employee.findUnique({
+      where: { id: employeeId },
+    });
 
-  if (!employee) return false;
+    if (!employee) return false;
 
-  const cookieStore = await cookies();
-  cookieStore.set('ecosphere_session', employeeId, {
-    path: '/',
-    maxAge: 60 * 60 * 24 * 7, // 1 week
-    httpOnly: true,
-  });
+    // Sign the token
+    const token = signToken(employeeId);
 
-  return true;
+    const cookieStore = await cookies();
+    cookieStore.set('ecosphere_session', token, {
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7, // 1 week
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+    });
+
+    return true;
+  } catch (err) {
+    console.error('Session write error:', err);
+    return false;
+  }
+}
+
+export async function destroySession(): Promise<void> {
+  try {
+    const cookieStore = await cookies();
+    cookieStore.delete('ecosphere_session');
+  } catch (err) {
+    console.error('Session destroy error:', err);
+  }
 }

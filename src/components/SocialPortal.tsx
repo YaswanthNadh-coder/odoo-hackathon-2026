@@ -1,8 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { formatDate } from '@/lib/date';
+import { useState, useEffect } from 'react';
 
 interface CSRActivity {
   id: string;
@@ -44,6 +43,12 @@ interface SocialPortalProps {
   } | null;
 }
 
+const TRAININGS = [
+  { id: 'conduct', name: 'Annual ESG Code of Conduct Training', description: 'Mandatory handbook sign-off on ethical policies, anti-corruption, and diversity codes.', xp: 30 },
+  { id: 'footprint', name: 'Carbon Auditing & Bookkeeping Workshop', description: 'Advanced seminar on Scope 1, 2, and 3 accounting calculation mechanics.', xp: 40 },
+  { id: 'supply', name: 'Sustainable Procurement Seminar', description: 'Guidelines on vetting vendors against global sustainability directives.', xp: 30 },
+];
+
 export default function SocialPortal({
   activities,
   participations,
@@ -64,7 +69,29 @@ export default function SocialPortal({
   const [activityDesc, setActivityDesc] = useState('');
   const [activityDate, setActivityDate] = useState('');
 
+  // Local storage for completed training ids
+  const [completedTrainings, setCompletedTrainings] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(`completed_trainings_${currentUser?.employeeId}`);
+      if (stored) {
+        setCompletedTrainings(JSON.parse(stored));
+      }
+    }
+  }, [currentUser?.employeeId]);
+
   const isOfficerOrManager = currentUser && (currentUser.role === 'officer' || currentUser.role === 'manager');
+
+  // Format dates securely
+  const formatDate = (dateString: string) => {
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return 'N/A';
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
 
   // Register / Join Activity (creates a pending participation)
   const handleJoinActivity = async (activityId: string) => {
@@ -218,12 +245,39 @@ export default function SocialPortal({
     }
   };
 
-  // Check if current user role allows approvals (Manager or Compliance Officer)
+  // Complete Training Course
+  const handleCompleteTraining = async (trainingId: string, xpReward: number) => {
+    setSubmitting(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const res = await fetch('/api/social/training', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trainingId, xpReward }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        const updated = [...completedTrainings, trainingId];
+        setCompletedTrainings(updated);
+        localStorage.setItem(`completed_trainings_${currentUser?.employeeId}`, JSON.stringify(updated));
+        setSuccessMessage(`Training Completed successfully! Awarded +${xpReward} XP & Points.`);
+        router.refresh();
+      } else {
+        setErrorMessage(data.error || 'Failed to submit training record.');
+      }
+    } catch (err) {
+      setErrorMessage('Unexpected error updating training completion.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const canApprove = currentUser && (currentUser.role === 'manager' || currentUser.role === 'officer');
   
-  // Filter pending participations
   const pendingParticipations = participations.filter((p) => p.approvalStatus === 'pending');
-  // Filter history
   const historyParticipations = participations.filter((p) => p.approvalStatus !== 'pending');
 
   return (
@@ -244,6 +298,84 @@ export default function SocialPortal({
           ))}
         </div>
       )}
+
+      {/* Diversity & Training Top Row Grid */}
+      <div className="grid-cols-3">
+        {/* Diversity & Inclusion breakdown */}
+        <div className="glass-card" style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', gap: '1rem', borderLeft: '4px solid var(--accent-overall)' }}>
+          <div>
+            <h3 style={{ fontSize: '1.15rem' }}>📊 Diversity & Representation Dashlet</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>Corporate social audit benchmarks across operational business units.</p>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', flexGrow: 1, justifyContent: 'center' }}>
+            {/* Gender diversity */}
+            <div>
+              <div className="flex-between" style={{ fontSize: '0.8rem', marginBottom: '0.25rem' }}>
+                <span style={{ fontWeight: 600 }}>Gender Representation Ratios</span>
+                <span style={{ color: 'var(--text-muted)' }}>46% Female | 48% Male | 6% Non-Binary</span>
+              </div>
+              <div style={{ display: 'flex', width: '100%', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{ width: '46%', background: 'var(--accent-overall-gradient)' }} />
+                <div style={{ width: '48%', background: 'rgba(255,255,255,0.15)' }} />
+                <div style={{ width: '6%', background: 'var(--accent-gov)' }} />
+              </div>
+            </div>
+
+            {/* Department female leadership index */}
+            <div className="grid-cols-2" style={{ gap: '1rem' }}>
+              <div>
+                <div className="flex-between" style={{ fontSize: '0.75rem', marginBottom: '0.2rem' }}>
+                  <span>Corporate Leadership Diversity</span>
+                  <span style={{ fontWeight: 700 }}>80%</span>
+                </div>
+                <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{ width: '80%', height: '100%', background: 'var(--accent-social)' }} />
+                </div>
+              </div>
+              <div>
+                <div className="flex-between" style={{ fontSize: '0.75rem', marginBottom: '0.2rem' }}>
+                  <span>Engineering (R&D) Diversity</span>
+                  <span style={{ fontWeight: 700 }}>75%</span>
+                </div>
+                <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div style={{ width: '75%', height: '100%', background: 'var(--accent-env)' }} />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ESG Training Checklist */}
+        <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', height: '240px' }}>
+          <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>🎓 ESG Compliance Training</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', overflowY: 'auto', flexGrow: 1 }}>
+            {TRAININGS.map((tr) => {
+              const isCompleted = completedTrainings.includes(tr.id);
+              return (
+                <div key={tr.id} style={{ padding: '0.4rem 0.6rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glow)', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ width: '70%', textAlign: 'left' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tr.name}</div>
+                    <span style={{ fontSize: '0.65rem', color: 'var(--accent-social)', fontWeight: 'bold' }}>⭐ +{tr.xp} XP</span>
+                  </div>
+                  {isCompleted ? (
+                    <span className="pill pill-success" style={{ fontSize: '0.55rem', padding: '0.1rem 0.3rem' }}>✓ Done</span>
+                  ) : (
+                    <button
+                      className="btn btn-primary"
+                      style={{ padding: '0.2rem 0.4rem', fontSize: '0.65rem' }}
+                      onClick={() => handleCompleteTraining(tr.id, tr.xp)}
+                      disabled={submitting}
+                    >
+                      Certify
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
 
       {/* 1. Manager / Department Head Approval Dashboard */}
       {canApprove && (
@@ -381,7 +513,6 @@ export default function SocialPortal({
 
         <div className="grid-cols-3">
           {activities.map((act) => {
-            // Check if current user is registered
             const isRegistered = participations.some(
               (p) => p.employeeId === currentUser?.employeeId && p.activityId === act.id
             );

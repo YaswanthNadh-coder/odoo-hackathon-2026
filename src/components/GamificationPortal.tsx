@@ -42,11 +42,21 @@ interface Participation {
   approval: string;
 }
 
+interface Reward {
+  id: string;
+  name: string;
+  description: string | null;
+  pointsRequired: number;
+  stock: number;
+  status: string;
+}
+
 interface GamificationPortalProps {
   challenges: Challenge[];
   badges: Badge[];
   leaderboard: LeaderboardUser[];
   participations: Participation[];
+  rewards: Reward[];
   currentUser: {
     employeeId: string;
     name: string;
@@ -63,6 +73,7 @@ export default function GamificationPortal({
   badges,
   leaderboard,
   participations,
+  rewards,
   currentUser,
 }: GamificationPortalProps) {
   const router = useRouter();
@@ -79,6 +90,9 @@ export default function GamificationPortal({
   const [challengeXp, setChallengeXp] = useState('100');
   const [challengeDifficulty, setChallengeDifficulty] = useState('medium');
   const [challengeDeadline, setChallengeDeadline] = useState('');
+
+  // Redeeming state
+  const [redeemingId, setRedeemingId] = useState<string | null>(null);
 
   const isOfficerOrManager = currentUser && (currentUser.role === 'officer' || currentUser.role === 'manager');
 
@@ -232,6 +246,33 @@ export default function GamificationPortal({
     }
   };
 
+  // Redeem Reward
+  const handleRedeemReward = async (rewardId: string) => {
+    setRedeemingId(rewardId);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const res = await fetch('/api/gamification/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rewardId }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setSuccessMessage(`Successfully redeemed ${data.rewardName}! point balance deducted.`);
+        router.refresh();
+      } else {
+        setErrorMessage(data.error || 'Failed to redeem reward.');
+      }
+    } catch (err) {
+      setErrorMessage('Unexpected error during redemption.');
+    } finally {
+      setRedeemingId(null);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Messages */}
@@ -269,7 +310,7 @@ export default function GamificationPortal({
               <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.05)', borderRadius: '4px', overflow: 'hidden', marginTop: '0.5rem' }}>
                 <div style={{ width: `${Math.min(100, (activeXp / 500) * 100)}%`, height: '100%', background: 'var(--accent-overall-gradient)', borderRadius: '4px' }} />
               </div>
-              <div className="flex-between" style={{ fontSize: '0.7;rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+              <div className="flex-between" style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
                 <span>Level Progress</span>
                 <span>{activeXp} / 500 XP</span>
               </div>
@@ -279,7 +320,7 @@ export default function GamificationPortal({
               <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Redeemable Balance Points</span>
               <h2 style={{ fontSize: '2rem', color: 'var(--accent-gov)', margin: '0.25rem 0' }}>⚡ {activePoints} <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Points</span></h2>
               <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.75rem' }}>
-                Use points in reward catalog programs.
+                Use points to redeem rewards from the catalog store.
               </p>
             </div>
           </div>
@@ -395,7 +436,7 @@ export default function GamificationPortal({
                 }}
               >
                 <div className="flex-between" style={{ marginBottom: '0.5rem' }}>
-                  <span className={`pill ${diffColor}`} style={{ fontSize: '0.6' }}>
+                  <span className={`pill ${diffColor}`} style={{ fontSize: '0.6rem' }}>
                     {ch.difficulty.toUpperCase()}
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
@@ -476,7 +517,64 @@ export default function GamificationPortal({
         </div>
       </div>
 
-      {/* Row 3: Badges Achievements Showcase */}
+      {/* Row 3: Rewards Catalog Store (Redeemable incentives) */}
+      <div>
+        <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>🛍️ ESG Incentives & Rewards Store</h3>
+        <div className="grid-cols-3">
+          {rewards.map((reward) => {
+            const canAfford = activePoints >= reward.pointsRequired;
+            const hasStock = reward.stock > 0;
+            const isRedeeming = redeemingId === reward.id;
+
+            return (
+              <div
+                key={reward.id}
+                className="glass-card"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  minHeight: '180px',
+                  border: hasStock ? '1px solid var(--border-glow)' : '1px solid rgba(255, 0, 0, 0.1)',
+                  opacity: hasStock ? 1 : 0.6,
+                }}
+              >
+                <div className="flex-between" style={{ marginBottom: '0.5rem' }}>
+                  <span className={`pill ${hasStock ? 'pill-info' : 'pill-error'}`} style={{ fontSize: '0.65rem' }}>
+                    {hasStock ? `Stock: ${reward.stock} left` : 'OUT OF STOCK'}
+                  </span>
+                  <span style={{ fontWeight: 700, color: 'var(--accent-gov)', fontSize: '0.9rem' }}>
+                    ⚡ {reward.pointsRequired} Pts
+                  </span>
+                </div>
+
+                <h4 style={{ fontSize: '1.05rem', fontWeight: 700 }}>{reward.name}</h4>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.25rem', flexGrow: 1 }}>
+                  {reward.description || 'No description available.'}
+                </p>
+
+                <div style={{ marginTop: '1rem' }}>
+                  <button
+                    className={`btn ${canAfford && hasStock ? 'btn-env' : 'btn-secondary'}`}
+                    style={{ width: '100%', padding: '0.45rem', fontSize: '0.8rem' }}
+                    onClick={() => handleRedeemReward(reward.id)}
+                    disabled={isRedeeming || !canAfford || !hasStock}
+                  >
+                    {isRedeeming
+                      ? 'Redeeming...'
+                      : !hasStock
+                      ? 'Out of Stock'
+                      : !canAfford
+                      ? `Need ${reward.pointsRequired - activePoints} more Points`
+                      : '🛒 Redeem Reward'}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Row 4: Badges Achievements Showcase */}
       <div>
         <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>🏆 Sustainability Badges & Achievements</h3>
         <div className="grid-cols-3">

@@ -17,7 +17,7 @@ export default async function GamificationPage() {
     include: {
       employees: session ? {
         where: { employeeId: session.employeeId },
-      } : false,
+      } : undefined,
     },
   });
 
@@ -26,6 +26,11 @@ export default async function GamificationPage() {
     include: { department: true },
     orderBy: { xp: 'desc' },
     take: 10,
+  });
+
+  // Fetch all rewards
+  const rewards = await prisma.reward.findMany({
+    orderBy: { pointsRequired: 'asc' },
   });
 
   // Fetch active employee challenge participations
@@ -61,9 +66,9 @@ export default async function GamificationPage() {
     description: badge.description,
     unlockRule: badge.unlockRule,
     icon: badge.icon,
-    employees: badge.employees.map((eb) => ({
+    employees: badge.employees ? badge.employees.map((eb) => ({
       id: eb.employeeId,
-    })),
+    })) : [],
   }));
 
   const serializedLeaderboard = leaderboard.map((user) => ({
@@ -82,6 +87,15 @@ export default async function GamificationPage() {
     challengeId: p.challengeId,
     progress: p.progress,
     approval: p.approval,
+  }));
+
+  const serializedRewards = rewards.map((rew) => ({
+    id: rew.id,
+    name: rew.name,
+    description: rew.description,
+    pointsRequired: rew.pointsRequired,
+    stock: rew.stock,
+    status: rew.status,
   }));
 
   const clientSession = session ? {
@@ -110,6 +124,7 @@ export default async function GamificationPage() {
         badges={serializedBadges}
         leaderboard={serializedLeaderboard}
         participations={serializedParticipations}
+        rewards={serializedRewards}
         currentUser={clientSession}
       />
     </div>

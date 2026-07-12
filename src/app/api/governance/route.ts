@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
       include: {
         acknowledgements: session ? {
           where: { employeeId: session.employeeId },
-        } : false,
+        } : undefined,
       },
     });
 

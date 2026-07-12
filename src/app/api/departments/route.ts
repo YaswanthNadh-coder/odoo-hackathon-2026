@@ -78,6 +78,7 @@ export async function DELETE(req: NextRequest) {
     // Clean up dependent records to avoid SQLite constraint violations
     await prisma.$transaction([
       prisma.carbonTransaction.deleteMany({ where: { departmentId: id } }),
+      prisma.spendingRecord.deleteMany({ where: { departmentId: id } }),
       prisma.complianceIssue.deleteMany({ where: { departmentId: id } }),
       // For employees, we delete their achievements first, then the employees
       prisma.employeeBadge.deleteMany({ where: { employee: { departmentId: id } } }),

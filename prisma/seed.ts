@@ -1,4 +1,5 @@
 import { prisma } from '../src/lib/db';
+import { hashPassword } from '../src/lib/auth';
 
 async function main() {
   console.log('Seeding database...');
@@ -19,6 +20,8 @@ async function main() {
   await prisma.category.deleteMany();
   await prisma.employee.deleteMany();
   await prisma.department.deleteMany();
+  await prisma.reward.deleteMany();
+  await prisma.spendingRecord.deleteMany();
 
   // 2. Global configuration
   await prisma.appConfig.create({
@@ -31,6 +34,10 @@ async function main() {
       envWeight: 0.4,
       socialWeight: 0.3,
       govWeight: 0.3,
+      notifyCompliance: true,
+      notifyApproval: true,
+      notifyPolicyReminder: true,
+      notifyBadgeUnlock: true,
     },
   });
 
@@ -50,19 +57,19 @@ async function main() {
 
   // 4. Employees
   const empJohn = await prisma.employee.create({
-    data: { name: 'John Doe', role: 'employee', departmentId: deptLogistics.id, xp: 120, points: 50 },
+    data: { name: 'John Doe', email: 'john@ecosphere.com', passwordHash: hashPassword('john123'), role: 'employee', departmentId: deptLogistics.id, xp: 120, points: 50 },
   });
   const empJane = await prisma.employee.create({
-    data: { name: 'Jane Smith', role: 'employee', departmentId: deptMfg.id, xp: 80, points: 30 },
+    data: { name: 'Jane Smith', email: 'jane@ecosphere.com', passwordHash: hashPassword('jane123'), role: 'employee', departmentId: deptMfg.id, xp: 80, points: 30 },
   });
   const empElena = await prisma.employee.create({
-    data: { name: 'Elena Rostova', role: 'manager', departmentId: deptCorporate.id, xp: 250, points: 150 },
+    data: { name: 'Elena Rostova', email: 'elena@ecosphere.com', passwordHash: hashPassword('elena123'), role: 'manager', departmentId: deptCorporate.id, xp: 250, points: 150 },
   });
   const empAlice = await prisma.employee.create({
-    data: { name: 'Alice Johnson', role: 'employee', departmentId: deptRD.id, xp: 350, points: 200 },
+    data: { name: 'Alice Johnson', email: 'alice@ecosphere.com', passwordHash: hashPassword('alice123'), role: 'employee', departmentId: deptRD.id, xp: 350, points: 200 },
   });
   const empMarcus = await prisma.employee.create({
-    data: { name: 'Marcus Vance', role: 'officer', departmentId: deptCorporate.id, xp: 0, points: 0 },
+    data: { name: 'Marcus Vance', email: 'marcus@ecosphere.com', passwordHash: hashPassword('marcus123'), role: 'officer', departmentId: deptCorporate.id, xp: 0, points: 0 },
   });
 
   // 5. Emission Factors
@@ -193,6 +200,25 @@ async function main() {
     data: [
       { employeeId: empJohn.id, challengeId: chPlastic.id, progress: 100, proofUrl: '/proofs/plastic.jpg', approval: 'approved', xpAwarded: 100 },
       { employeeId: empJane.id, challengeId: chBike.id, progress: 40, approval: 'pending' },
+    ],
+  });
+
+  // 15. Rewards Catalog
+  await prisma.reward.createMany({
+    data: [
+      { name: 'Eco Coffee Mug', description: 'Double-walled reusable bamboo travel mug.', pointsRequired: 100, stock: 15 },
+      { name: 'Sustainable Apparel Hoodie', description: 'Certified organic cotton hoodie.', pointsRequired: 300, stock: 5 },
+      { name: 'Solar Charger Powerbank', description: '20,000mAh solar-powered backup battery.', pointsRequired: 500, stock: 2 },
+    ],
+  });
+
+  // 16. Operational Spending Records
+  await prisma.spendingRecord.createMany({
+    data: [
+      { type: 'fleet', description: 'Logistics Diesel Fuel Fleet refill', amount: 650.0, quantity: 450.0, departmentId: deptLogistics.id },
+      { type: 'manufacturing', description: 'Monthly Factory Power Bill Grid utilities', amount: 2200.0, quantity: 18000.0, departmentId: deptMfg.id },
+      { type: 'expense', description: 'R&D Executive Flight Travel mileage', amount: 950.0, quantity: 3000.0, departmentId: deptRD.id },
+      { type: 'purchase', description: 'Eco-friendly office supplies procurement', amount: 1500.0, quantity: 1500.0, departmentId: deptCorporate.id },
     ],
   });
 

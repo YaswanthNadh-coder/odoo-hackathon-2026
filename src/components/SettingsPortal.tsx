@@ -11,6 +11,10 @@ interface Config {
   envWeight: number;
   socialWeight: number;
   govWeight: number;
+  notifyCompliance: boolean;
+  notifyApproval: boolean;
+  notifyPolicyReminder: boolean;
+  notifyBadgeUnlock: boolean;
 }
 
 interface Department {
@@ -57,6 +61,10 @@ export default function SettingsPortal({
   const [evidenceRequired, setEvidenceRequired] = useState(config.evidenceRequired);
   const [badgeAutoAward, setBadgeAutoAward] = useState(config.badgeAutoAward);
   const [complianceEmailAlert, setComplianceEmailAlert] = useState(config.complianceEmailAlert);
+  const [notifyCompliance, setNotifyCompliance] = useState(config.notifyCompliance);
+  const [notifyApproval, setNotifyApproval] = useState(config.notifyApproval);
+  const [notifyPolicyReminder, setNotifyPolicyReminder] = useState(config.notifyPolicyReminder);
+  const [notifyBadgeUnlock, setNotifyBadgeUnlock] = useState(config.notifyBadgeUnlock);
   
   const [envWeight, setEnvWeight] = useState(config.envWeight * 100);
   const [socialWeight, setSocialWeight] = useState(config.socialWeight * 100);
@@ -105,6 +113,10 @@ export default function SettingsPortal({
           envWeight: envWeight / 100,
           socialWeight: socialWeight / 100,
           govWeight: govWeight / 100,
+          notifyCompliance,
+          notifyApproval,
+          notifyPolicyReminder,
+          notifyBadgeUnlock,
         }),
       });
 
@@ -379,6 +391,66 @@ export default function SettingsPortal({
                   type="checkbox" 
                   checked={complianceEmailAlert} 
                   onChange={(e) => setComplianceEmailAlert(e.target.checked)}
+                  disabled={!isOfficerOrManager}
+                  style={{ width: '1.5rem', height: '1.5rem', cursor: 'pointer' }}
+                />
+              </div>
+
+              {/* Toggle 5: Notify Compliance Created */}
+              <div className="flex-between" style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 'var(--radius-md)' }}>
+                <div>
+                  <h4 style={{ fontSize: '0.95rem' }}>Notify on New Compliance Issues</h4>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Send in-app alerts as soon as a new compliance issue or audit violation is raised.</p>
+                </div>
+                <input 
+                  type="checkbox" 
+                  checked={notifyCompliance} 
+                  onChange={(e) => setNotifyCompliance(e.target.checked)}
+                  disabled={!isOfficerOrManager}
+                  style={{ width: '1.5rem', height: '1.5rem', cursor: 'pointer' }}
+                />
+              </div>
+
+              {/* Toggle 6: Notify Approvals */}
+              <div className="flex-between" style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 'var(--radius-md)' }}>
+                <div>
+                  <h4 style={{ fontSize: '0.95rem' }}>Notify on CSR/Challenge Approval Decisions</h4>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Alert employees when their activity logs are approved or rejected by managers.</p>
+                </div>
+                <input 
+                  type="checkbox" 
+                  checked={notifyApproval} 
+                  onChange={(e) => setNotifyApproval(e.target.checked)}
+                  disabled={!isOfficerOrManager}
+                  style={{ width: '1.5rem', height: '1.5rem', cursor: 'pointer' }}
+                />
+              </div>
+
+              {/* Toggle 7: Notify Policy Reminders */}
+              <div className="flex-between" style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 'var(--radius-md)' }}>
+                <div>
+                  <h4 style={{ fontSize: '0.95rem' }}>Notify Policy Acknowledgement Reminders</h4>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Regularly trigger reminders for unsigned policies and ethical conduct codes.</p>
+                </div>
+                <input 
+                  type="checkbox" 
+                  checked={notifyPolicyReminder} 
+                  onChange={(e) => setNotifyPolicyReminder(e.target.checked)}
+                  disabled={!isOfficerOrManager}
+                  style={{ width: '1.5rem', height: '1.5rem', cursor: 'pointer' }}
+                />
+              </div>
+
+              {/* Toggle 8: Notify Badge Unlocks */}
+              <div className="flex-between" style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 'var(--radius-md)' }}>
+                <div>
+                  <h4 style={{ fontSize: '0.95rem' }}>Notify on Achievement Badge Unlocks</h4>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Celebrate and send success alerts the moment an employee satisfies badge milestones.</p>
+                </div>
+                <input 
+                  type="checkbox" 
+                  checked={notifyBadgeUnlock} 
+                  onChange={(e) => setNotifyBadgeUnlock(e.target.checked)}
                   disabled={!isOfficerOrManager}
                   style={{ width: '1.5rem', height: '1.5rem', cursor: 'pointer' }}
                 />

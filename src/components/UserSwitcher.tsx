@@ -1,73 +1,63 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 
-interface Employee {
-  id: string;
+interface UserSession {
+  employeeId: string;
   name: string;
   role: string;
-  department: {
-    name: string;
-    code: string;
-  };
+  departmentId: string;
+  departmentName: string;
+  departmentCode: string;
 }
 
 interface UserSwitcherProps {
-  currentEmployeeId: string;
-  employees: Employee[];
+  session: UserSession;
 }
 
-export default function UserSwitcher({ currentEmployeeId, employees }: UserSwitcherProps) {
+export default function UserSwitcher({ session }: UserSwitcherProps) {
   const router = useRouter();
-  const [selectedId, setSelectedId] = useState(currentEmployeeId);
-  const [isPending, startTransition] = useTransition();
+  const [loading, setLoading] = useState(false);
 
-  const handleSwitch = async (employeeId: string) => {
-    setSelectedId(employeeId);
-    
+  const handleLogout = async () => {
+    setLoading(true);
     try {
-      const res = await fetch('/api/session', {
+      const res = await fetch('/api/auth/logout', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ employeeId }),
       });
-
       if (res.ok) {
-        // Trigger server components to re-run and fetch updated session data
-        startTransition(() => {
-          router.refresh();
-        });
-      } else {
-        console.error('Failed to switch user');
+        router.push('/login');
+        router.refresh();
       }
     } catch (err) {
-      console.error('Error switching user:', err);
+      console.error('Logout error:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const activeEmp = employees.find(e => e.id === selectedId);
+  const roleEmoji = session.role === 'officer' ? '🛡️' : session.role === 'manager' ? '💼' : '👤';
 
   return (
-    <div className="user-switcher-container">
-      <span style={{ fontSize: '1.1rem', marginRight: '0.25rem' }}>
-        {activeEmp?.role === 'officer' ? '🛡️' : activeEmp?.role === 'manager' ? '💼' : '👤'}
-      </span>
-      <select
-        className="user-switcher-select"
-        value={selectedId}
-        onChange={(e) => handleSwitch(e.target.value)}
-        disabled={isPending}
+    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', fontSize: '0.825rem' }}>
+        <div style={{ fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+          <span>{roleEmoji}</span>
+          <span>{session.name}</span>
+        </div>
+        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+          {session.role.toUpperCase()} ({session.departmentCode})
+        </span>
+      </div>
+      <button 
+        className="btn btn-secondary" 
+        style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', borderLeft: '3px solid #ef4444' }} 
+        onClick={handleLogout}
+        disabled={loading}
       >
-        {employees.map((emp) => (
-          <option key={emp.id} value={emp.id}>
-            {emp.name} ({emp.role.toUpperCase()} - {emp.department.code})
-          </option>
-        ))}
-      </select>
-      {isPending && <span style={{ opacity: 0.6, fontSize: '0.75rem', animation: 'pulse-glow 1s infinite' }}>Syncing...</span>}
+        {loading ? 'Signing out...' : '🚪 Logout'}
+      </button>
     </div>
   );
 }
