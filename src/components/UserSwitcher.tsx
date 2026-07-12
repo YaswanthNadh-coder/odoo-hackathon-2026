@@ -30,7 +30,7 @@ export default function UserSwitcher({ session }: UserSwitcherProps) {
         router.push('/login');
         router.refresh();
       }
-    } catch {
+    } catch (err) {
       console.error('Logout error:', err);
     } finally {
       setLoading(false);

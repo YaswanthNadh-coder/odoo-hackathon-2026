@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import './globals.css';
 import Sidebar from '@/components/Sidebar';
 import UserSwitcher from '@/components/UserSwitcher';
 import { getSession } from '@/lib/session';
+
 export const metadata: Metadata = {
   title: 'EcoSphere - ESG Management Platform',
   description: 'Track Environmental, Social, and Governance compliance through ERP data integration and employee gamification.',
@@ -14,6 +17,12 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await getSession();
+  const headersList = await headers();
+  const pathname = headersList.get('x-pathname') || '';
+
+  if (!session && pathname !== '/login') {
+    redirect('/login');
+  }
 
   return (
     <html lang="en">
