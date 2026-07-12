@@ -83,12 +83,6 @@ interface SocialPortalProps {
   } | null;
 }
 
-const TRAININGS = [
-  { id: 'conduct', name: 'Annual ESG Code of Conduct Training', description: 'Mandatory handbook sign-off on ethical policies, anti-corruption, and diversity codes.', xp: 30 },
-  { id: 'footprint', name: 'Carbon Auditing & Bookkeeping Workshop', description: 'Advanced seminar on Scope 1, 2, and 3 accounting calculation mechanics.', xp: 40 },
-  { id: 'supply', name: 'Sustainable Procurement Seminar', description: 'Guidelines on vetting vendors against global sustainability directives.', xp: 30 },
-];
-
 export default function SocialPortal({
   activities,
   participations,
@@ -117,18 +111,6 @@ export default function SocialPortal({
   const [activityDesc, setActivityDesc] = useState('');
   const [activityDate, setActivityDate] = useState('');
 
-  // Local storage for completed training ids
-  const [completedTrainings, setCompletedTrainings] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(`completed_trainings_${currentUser?.employeeId}`);
-      if (stored) {
-        // eslint-disable-next-line
-        setCompletedTrainings(JSON.parse(stored));
-      }
-    }
-  }, [currentUser?.employeeId]);
 
   const isOfficerOrManager = currentUser && (currentUser.role === 'officer' || currentUser.role === 'manager');
 
@@ -781,7 +763,6 @@ export default function SocialPortal({
                 })}
               </div>
             </div>
-
             {/* Ethnicity Demographics */}
             <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', borderLeft: '4px solid var(--accent-gov)' }}>
               <h4 style={{ fontWeight: 700, fontSize: '1rem' }}>Ethnic Diversity</h4>

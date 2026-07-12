@@ -63,6 +63,12 @@ export default function Sidebar() {
             </Link>
           </li>
           <li>
+            <Link href="/profile" className={`nav-link ${isLinkActive('/profile') ? 'active' : ''}`}>
+              <span>👤</span>
+              <span>My Profile</span>
+            </Link>
+          </li>
+          <li>
             <Link href="/settings" className={`nav-link ${isLinkActive('/settings') ? 'active' : ''}`}>
               <span>⚙️</span>
               <span>Settings</span>

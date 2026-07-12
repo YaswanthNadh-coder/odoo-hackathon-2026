@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Only Managers and Officers can create challenges.' }, { status: 403 });
       }
 
-      const { title, description, xp, difficulty, deadline, categoryId } = body;
+      const { title, description, xp, difficulty, status, deadline, categoryId } = body;
 
       if (!title || xp === undefined) {
         return NextResponse.json({ error: 'Title and XP reward are required' }, { status: 400 });
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
           description: description || '',
           xp: parseInt(xp),
           difficulty: difficulty || 'medium',
-          status: 'active', // default to active for immediate demoing
+          status: status || 'active',
           deadline: deadline ? new Date(deadline) : null,
           categoryId: categoryId || null,
         },
@@ -279,7 +279,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Only Managers and Officers can update challenges.' }, { status: 403 });
     }
 
-    const { id, title, description, xp, difficulty, deadline } = await req.json();
+    const { id, title, description, xp, difficulty, status, deadline } = await req.json();
 
     if (!id || !title || xp === undefined) {
       return NextResponse.json({ error: 'Missing required fields (id, title, xp)' }, { status: 400 });
@@ -292,6 +292,7 @@ export async function PUT(req: NextRequest) {
         description,
         xp: parseInt(xp),
         difficulty,
+        status: status || 'active',
         deadline: deadline ? new Date(deadline) : null,
       },
     });

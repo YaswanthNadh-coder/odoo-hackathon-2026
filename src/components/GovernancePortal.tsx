@@ -30,6 +30,7 @@ interface ComplianceIssue {
   };
 }
 
+
 interface Department {
   id: string;
   name: string;
@@ -59,8 +60,8 @@ interface Audit {
 interface GovernancePortalProps {
   policies: Policy[];
   issues: ComplianceIssue[];
-  departments: Department[];
   audits: Audit[];
+  departments: Department[];
   currentUser: {
     employeeId: string;
     name: string;
@@ -73,8 +74,8 @@ interface GovernancePortalProps {
 export default function GovernancePortal({
   policies,
   issues,
-  departments,
   audits,
+  departments,
   currentUser,
 }: GovernancePortalProps) {
   const router = useRouter();

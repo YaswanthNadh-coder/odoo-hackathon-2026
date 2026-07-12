@@ -106,6 +106,7 @@ export default function GamificationPortal({
   const [challengeDesc, setChallengeDesc] = useState('');
   const [challengeXp, setChallengeXp] = useState('100');
   const [challengeDifficulty, setChallengeDifficulty] = useState('medium');
+  const [challengeStatus, setChallengeStatus] = useState('active');
   const [challengeDeadline, setChallengeDeadline] = useState('');
   const [challengeEvidenceRequired, setChallengeEvidenceRequired] = useState(false);
 
@@ -217,6 +218,7 @@ export default function GamificationPortal({
       description: challengeDesc,
       xp: parseInt(challengeXp),
       difficulty: challengeDifficulty,
+      status: challengeStatus,
       deadline: challengeDeadline ? new Date(challengeDeadline) : null,
       evidenceRequired: challengeEvidenceRequired,
     } : {
@@ -225,6 +227,7 @@ export default function GamificationPortal({
       description: challengeDesc,
       xp: parseInt(challengeXp),
       difficulty: challengeDifficulty,
+      status: challengeStatus,
       deadline: challengeDeadline ? new Date(challengeDeadline) : null,
       evidenceRequired: challengeEvidenceRequired,
     };
@@ -257,6 +260,7 @@ export default function GamificationPortal({
     setChallengeDesc(ch.description || '');
     setChallengeXp(String(ch.xp));
     setChallengeDifficulty(ch.difficulty);
+    setChallengeStatus(ch.status);
     setChallengeDeadline(ch.deadline ? ch.deadline.substring(0, 10) : '');
     setChallengeEvidenceRequired(ch.evidenceRequired || false);
     setShowChallengeForm(true);
@@ -268,6 +272,7 @@ export default function GamificationPortal({
     setChallengeDesc('');
     setChallengeXp('100');
     setChallengeDifficulty('medium');
+    setChallengeStatus('active');
     setChallengeDeadline('');
     setChallengeEvidenceRequired(false);
     setShowChallengeForm(false);
@@ -568,13 +573,22 @@ export default function GamificationPortal({
                     </div>
                   </div>
                   <div className="grid-cols-3" style={{ gap: '1rem' }}>
-                    <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                    <div className="form-group">
                       <label className="form-label">Description / Directives</label>
                       <input type="text" className="form-input" placeholder="Detail the challenge rules..." value={challengeDesc} onChange={(e) => setChallengeDesc(e.target.value)} />
                     </div>
                     <div className="form-group">
                       <label className="form-label">Deadline Date (Optional)</label>
                       <input type="date" className="form-input" value={challengeDeadline} onChange={(e) => setChallengeDeadline(e.target.value)} />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Challenge Status</label>
+                      <select className="form-select" value={challengeStatus} onChange={(e) => setChallengeStatus(e.target.value)}>
+                        <option value="draft">Draft (Hidden)</option>
+                        <option value="active">Active (Visible)</option>
+                        <option value="review">Under Review</option>
+                        <option value="archived">Archived</option>
+                      </select>
                     </div>
                   </div>
                   <div className="form-group">
@@ -594,116 +608,127 @@ export default function GamificationPortal({
             )}
 
             <div className="grid-cols-3">
-              {challenges.map((ch) => {
-                const userPart = participations.find((p) => p.challengeId === ch.id);
-                const isJoined = !!userPart;
-                const isCompleted = userPart?.progress === 100;
+              {challenges
+                .filter((ch) => isOfficerOrManager || ch.status === 'active')
+                .map((ch) => {
+                  const userPart = participations.find((p) => p.challengeId === ch.id);
+                  const isJoined = !!userPart;
+                  const isCompleted = userPart?.progress === 100;
 
-                let diffColor = 'pill-info';
-                if (ch.difficulty === 'hard') diffColor = 'pill-error';
-                else if (ch.difficulty === 'medium') diffColor = 'pill-warning';
+                  let diffColor = 'pill-info';
+                  if (ch.difficulty === 'hard') diffColor = 'pill-error';
+                  else if (ch.difficulty === 'medium') diffColor = 'pill-warning';
 
-                return (
-                  <div
-                    key={ch.id}
-                    className="glass-card"
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      height: '250px',
-                      border: isCompleted ? '1.5px solid rgba(16, 185, 129, 0.2)' : '1px solid var(--border-glow)',
-                    }}
-                  >
-                    <div className="flex-between" style={{ marginBottom: '0.5rem' }}>
-                      <span className={`pill ${diffColor}`} style={{ fontSize: '0.65rem' }}>
-                        {ch.difficulty.toUpperCase()}
-                      </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--accent-overall)' }}>
-                          ⭐ +{ch.xp} XP
-                        </span>
-                        {isOfficerOrManager && (
-                          <div style={{ display: 'flex', gap: '0.25rem' }}>
-                            <button className="btn" style={{ padding: '0.1rem', background: 'transparent' }} onClick={() => handleEditChallengeClick(ch)}>
-                              ✏️
-                            </button>
-                            <button className="btn" style={{ padding: '0.1rem', background: 'transparent' }} onClick={() => handleDeleteChallenge(ch.id)}>
-                              🗑️
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <h4 style={{ fontSize: '1.05rem', fontWeight: 700 }}>{ch.title}</h4>
-                    <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', marginTop: '0.4rem', flexGrow: 1, lineHeight: '1.4', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
-                      {ch.description}
-                    </p>
-                    {ch.evidenceRequired && (
-                      <span style={{ fontSize: '0.7rem', color: 'var(--accent-gov)', marginBottom: '0.5rem', display: 'block' }}>
-                        📄 Evidence Required
-                      </span>
-                    )}
-
-                    <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      {isJoined ? (
-                        <div>
-                          {isCompleted ? (
-                            <div className="pill pill-success" style={{ width: '100%', justifyContent: 'center', fontSize: '0.7rem' }}>
-                              ✓ Completed & Awarded
-                            </div>
-                          ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                              <div className="flex-between">
-                                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Current Progress:</span>
-                                <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>
-                                  {userPart.progress}%
-                                </span>
-                              </div>
-                              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <input
-                                  type="number"
-                                  className="form-input"
-                                  style={{ width: '70px', padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
-                                  min="0"
-                                  max="100"
-                                  placeholder="0"
-                                  value={progressValues[ch.id] !== undefined ? progressValues[ch.id] : userPart.progress}
-                                  onChange={(e) =>
-                                    setProgressValues({
-                                      ...progressValues,
-                                      [ch.id]: parseInt(e.target.value) || 0,
-                                    })
-                                  }
-                                />
-                                <button
-                                  className="btn btn-env"
-                                  style={{ flexGrow: 1, padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
-                                  onClick={() => handleUpdateProgress(ch.id)}
-                                  disabled={submitting}
-                                >
-                                  Update Progress
-                                </button>
-                              </div>
+                  return (
+                    <div
+                      key={ch.id}
+                      className="glass-card"
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        height: '260px',
+                        border: isCompleted ? '1.5px solid rgba(16, 185, 129, 0.2)' : '1px solid var(--border-glow)',
+                        opacity: ch.status === 'active' ? 1 : 0.6,
+                      }}
+                    >
+                      <div className="flex-between" style={{ marginBottom: '0.5rem' }}>
+                        <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                          <span className={`pill ${diffColor}`} style={{ fontSize: '0.65rem' }}>
+                            {ch.difficulty.toUpperCase()}
+                          </span>
+                          {isOfficerOrManager && ch.status !== 'active' && (
+                            <span className="pill pill-warning" style={{ fontSize: '0.65rem' }}>
+                              {ch.status.toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--accent-overall)' }}>
+                            ⭐ +{ch.xp} XP
+                          </span>
+                          {isOfficerOrManager && (
+                            <div style={{ display: 'flex', gap: '0.25rem' }}>
+                              <button className="btn" style={{ padding: '0.1rem', background: 'transparent' }} onClick={() => handleEditChallengeClick(ch)}>
+                                ✏️
+                              </button>
+                              <button className="btn" style={{ padding: '0.1rem', background: 'transparent' }} onClick={() => handleDeleteChallenge(ch.id)}>
+                                🗑️
+                              </button>
                             </div>
                           )}
                         </div>
-                      ) : (
-                        <button
-                          className="btn btn-secondary"
-                          style={{ width: '100%', padding: '0.5rem' }}
-                          onClick={() => handleJoinChallenge(ch.id)}
-                          disabled={submitting}
-                        >
-                          🚀 Accept Challenge
-                        </button>
+                      </div>
+
+                      <h4 style={{ fontSize: '1.05rem', fontWeight: 700 }}>{ch.title}</h4>
+                      <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', marginTop: '0.4rem', flexGrow: 1, lineHeight: '1.4', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
+                        {ch.description}
+                      </p>
+                      {ch.evidenceRequired && (
+                        <span style={{ fontSize: '0.7rem', color: 'var(--accent-gov)', marginBottom: '0.5rem', display: 'block' }}>
+                          📄 Evidence Required
+                        </span>
                       )}
+
+                      <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        {isJoined ? (
+                          <div>
+                            {isCompleted ? (
+                              <div className="pill pill-success" style={{ width: '100%', justifyContent: 'center', fontSize: '0.7rem' }}>
+                                ✓ Completed & Awarded
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                <div className="flex-between">
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Current Progress:</span>
+                                  <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>
+                                    {userPart.progress}%
+                                  </span>
+                                </div>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                  <input
+                                    type="number"
+                                    className="form-input"
+                                    style={{ width: '70px', padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
+                                    min="0"
+                                    max="100"
+                                    placeholder="0"
+                                    value={progressValues[ch.id] !== undefined ? progressValues[ch.id] : userPart.progress}
+                                    onChange={(e) =>
+                                      setProgressValues({
+                                        ...progressValues,
+                                        [ch.id]: parseInt(e.target.value) || 0,
+                                      })
+                                    }
+                                  />
+                                  <button
+                                    className="btn btn-env"
+                                    style={{ flexGrow: 1, padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
+                                    onClick={() => handleUpdateProgress(ch.id)}
+                                    disabled={submitting}
+                                  >
+                                    Update Progress
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <button
+                            className="btn btn-secondary"
+                            style={{ width: '100%', padding: '0.5rem' }}
+                            onClick={() => handleJoinChallenge(ch.id)}
+                            disabled={submitting}
+                          >
+                            🚀 Accept Challenge
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           </div>
+
 
           {/* Badges showcase */}
           <div>

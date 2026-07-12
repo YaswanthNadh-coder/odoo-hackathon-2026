@@ -30,7 +30,7 @@ export default async function GovernancePage() {
     orderBy: { name: 'asc' },
   });
 
-  // Fetch audits
+  // Fetch audits with department and compliance issues
   const audits = await prisma.audit.findMany({
     include: {
       department: true,
@@ -85,7 +85,7 @@ export default async function GovernancePage() {
       name: audit.department.name,
       code: audit.department.code,
     },
-    complianceIssues: audit.complianceIssues.map((issue) => ({
+    complianceIssues: audit.complianceIssues.map((issue: any) => ({
       id: issue.id,
       description: issue.description,
       status: issue.status,
@@ -106,8 +106,8 @@ export default async function GovernancePage() {
       <GovernancePortal
         policies={serializedPolicies}
         issues={serializedIssues}
-        departments={serializedDepartments}
         audits={serializedAudits}
+        departments={serializedDepartments}
         currentUser={session}
       />
     </div>
