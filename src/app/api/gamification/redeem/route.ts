@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
       rewardName: updatedReward.name,
       newStock: updatedReward.stock,
     });
-  } catch (error: any) {
+  } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

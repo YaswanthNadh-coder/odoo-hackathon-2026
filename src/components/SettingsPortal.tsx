@@ -127,7 +127,7 @@ export default function SettingsPortal({
         const data = await res.json();
         setErrorMessage(data.error || 'Failed to update configuration.');
       }
-    } catch (err) {
+    } catch {
       setErrorMessage('Unexpected error updating configuration.');
     } finally {
       setSubmitting(false);
@@ -172,7 +172,7 @@ export default function SettingsPortal({
         const data = await res.json();
         setErrorMessage(data.error || 'Failed to save department.');
       }
-    } catch (err) {
+    } catch {
       setErrorMessage('Error saving department details.');
     } finally {
       setSubmitting(false);
@@ -210,7 +210,7 @@ export default function SettingsPortal({
         const data = await res.json();
         setErrorMessage(data.error || 'Failed to delete department.');
       }
-    } catch (err) {
+    } catch {
       setErrorMessage('Error deleting department.');
     } finally {
       setSubmitting(false);
@@ -263,7 +263,7 @@ export default function SettingsPortal({
         const data = await res.json();
         setErrorMessage(data.error || 'Failed to save category.');
       }
-    } catch (err) {
+    } catch {
       setErrorMessage('Error saving category details.');
     } finally {
       setSubmitting(false);
@@ -299,7 +299,7 @@ export default function SettingsPortal({
         const data = await res.json();
         setErrorMessage(data.error || 'Failed to delete category.');
       }
-    } catch (err) {
+    } catch {
       setErrorMessage('Error deleting category.');
     } finally {
       setSubmitting(false);

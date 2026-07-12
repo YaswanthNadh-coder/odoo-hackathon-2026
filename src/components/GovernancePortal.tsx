@@ -109,7 +109,7 @@ export default function GovernancePortal({
       } else {
         setErrorMessage(data.error || 'Failed to acknowledge policy.');
       }
-    } catch (err) {
+    } catch {
       setErrorMessage('Unexpected error during policy sign-off.');
     } finally {
       setSubmitting(false);
@@ -147,7 +147,7 @@ export default function GovernancePortal({
         const data = await res.json();
         setErrorMessage(data.error || 'Failed to create policy.');
       }
-    } catch (err) {
+    } catch {
       setErrorMessage('Error creating policy.');
     } finally {
       setSubmitting(false);
@@ -174,7 +174,7 @@ export default function GovernancePortal({
         const data = await res.json();
         setErrorMessage(data.error || 'Failed to delete policy.');
       }
-    } catch (err) {
+    } catch {
       setErrorMessage('Error deleting policy.');
     } finally {
       setSubmitting(false);
@@ -341,7 +341,7 @@ export default function GovernancePortal({
       } else {
         setErrorMessage(data.error || 'Failed to raise compliance issue.');
       }
-    } catch (err) {
+    } catch {
       setErrorMessage('Unexpected error raising compliance issue.');
     } finally {
       setSubmitting(false);
@@ -370,7 +370,7 @@ export default function GovernancePortal({
       } else {
         setErrorMessage(data.error || 'Failed to resolve compliance issue.');
       }
-    } catch (err) {
+    } catch {
       setErrorMessage('Unexpected error resolving compliance issue.');
     } finally {
       setSubmitting(false);
@@ -397,7 +397,7 @@ export default function GovernancePortal({
         const data = await res.json();
         setErrorMessage(data.error || 'Failed to delete compliance issue.');
       }
-    } catch (err) {
+    } catch {
       setErrorMessage('Error deleting compliance issue.');
     } finally {
       setSubmitting(false);

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function proxy(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   const session = request.cookies.get('ecosphere_session');
   const { pathname } = request.nextUrl;
 

@@ -3,9 +3,6 @@ import './globals.css';
 import Sidebar from '@/components/Sidebar';
 import UserSwitcher from '@/components/UserSwitcher';
 import { getSession } from '@/lib/session';
-import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
-
 export const metadata: Metadata = {
   title: 'EcoSphere - ESG Management Platform',
   description: 'Track Environmental, Social, and Governance compliance through ERP data integration and employee gamification.',
@@ -17,15 +14,6 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await getSession();
-  
-  const headersList = await headers();
-  const pathname = headersList.get('x-pathname') || '';
-  const isLoginPage = pathname === '/login';
-
-  // If session is invalid and they aren't on the login page, redirect to /login
-  if (!session && !isLoginPage) {
-    redirect('/login');
-  }
 
   return (
     <html lang="en">

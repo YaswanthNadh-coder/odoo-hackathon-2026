@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
     }
 
     return NextResponse.json({ challenges, badges, leaderboard, participations });
-  } catch (error: any) {
+  } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -143,7 +143,7 @@ export async function POST(req: NextRequest) {
       const prevProgress = existing.progress;
       let approvalStatus = 'pending';
       let xpAwarded = 0;
-      let awardedBadges: any[] = [];
+      const awardedBadges: any[] = [];
       let updatedEmployee: any = null;
 
       // Check config for badge auto-award
@@ -237,7 +237,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
-  } catch (error: any) {
+  } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -267,7 +267,7 @@ export async function DELETE(req: NextRequest) {
     ]);
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

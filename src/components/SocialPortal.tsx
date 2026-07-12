@@ -101,6 +101,7 @@ export default function SocialPortal({
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'csr' | 'diversity' | 'training'>('csr');
   const [submitting, setSubmitting] = useState(false);
+  const [activeParticipationId, setActiveParticipationId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [newBadges, setNewBadges] = useState<any[]>([]);
@@ -122,6 +123,7 @@ export default function SocialPortal({
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem(`completed_trainings_${currentUser?.employeeId}`);
       if (stored) {
+        // eslint-disable-next-line
         setCompletedTrainings(JSON.parse(stored));
       }
     }
@@ -138,29 +140,8 @@ export default function SocialPortal({
     const year = d.getFullYear();
     return `${day}/${month}/${year}`;
   };
+  // Register / Join Activity (creates a "joined" participation)
   const handleJoinActivity = async (activityId: string) => {
-    setActiveActivityId(activityId);
-    setErrorMessage('');
-    setSuccessMessage('');
-    
-    if (!evidenceRequiredEnabled) {
-      submitRegistration(activityId, '');
-    }
-  };
-
-  const handleRegisterWithEvidence = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activeActivityId) return;
-
-    if (evidenceRequiredEnabled && !proofUrl) {
-      setErrorMessage('Proof file URL is required under current governance rules.');
-      return;
-    }
-
-    submitRegistration(activeActivityId, proofUrl);
-  };
-
-  const submitRegistration = async (activityId: string, proof: string) => {
     setSubmitting(true);
     setErrorMessage('');
     setSuccessMessage('');
@@ -169,20 +150,58 @@ export default function SocialPortal({
       const res = await fetch('/api/social', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activityId, proofUrl: proof }),
+        body: JSON.stringify({ activityId }),
       });
 
       const data = await res.json();
       if (res.ok) {
-        setSuccessMessage('Participation request logged! Pending department manager approval.');
-        setProofUrl('');
-        setActiveActivityId(null);
+        setSuccessMessage('Successfully joined the activity! You can now request approval when ready.');
         router.refresh();
       } else {
-        setErrorMessage(data.error || 'Failed to submit registration.');
+        setErrorMessage(data.error || 'Failed to join activity.');
       }
     } catch (err) {
-      setErrorMessage('Unexpected error submitting registration.');
+      setErrorMessage('Unexpected error joining activity.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleRegisterWithEvidence = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeParticipationId) return;
+
+    if (evidenceRequiredEnabled && !proofUrl) {
+      setErrorMessage('Proof file URL is required under current governance rules.');
+      return;
+    }
+
+    submitApprovalRequest(activeParticipationId, proofUrl);
+  };
+
+  const submitApprovalRequest = async (participationId: string, proof: string) => {
+    setSubmitting(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const res = await fetch('/api/social', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'request-approval', participationId, proofUrl: proof }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setSuccessMessage('Approval request logged! Pending department manager approval.');
+        setProofUrl('');
+        setActiveParticipationId(null);
+        router.refresh();
+      } else {
+        setErrorMessage(data.error || 'Failed to submit approval request.');
+      }
+    } catch (err) {
+      setErrorMessage('Unexpected error submitting request.');
     } finally {
       setSubmitting(false);
     }
@@ -221,7 +240,7 @@ export default function SocialPortal({
         const data = await res.json();
         setErrorMessage(data.error || 'Failed to create activity.');
       }
-    } catch (err) {
+    } catch {
       setErrorMessage('Error creating activity.');
     } finally {
       setSubmitting(false);
@@ -248,7 +267,7 @@ export default function SocialPortal({
         const data = await res.json();
         setErrorMessage(data.error || 'Failed to delete activity.');
       }
-    } catch (err) {
+    } catch {
       setErrorMessage('Error deleting CSR activity.');
     } finally {
       setSubmitting(false);
@@ -278,7 +297,7 @@ export default function SocialPortal({
       } else {
         setErrorMessage(data.error || 'Failed to complete approval action.');
       }
-    } catch (err) {
+    } catch {
       setErrorMessage('Error performing approval action.');
     } finally {
       setSubmitting(false);
@@ -388,7 +407,9 @@ export default function SocialPortal({
 
   const canApprove = currentUser && (currentUser.role === 'manager' || currentUser.role === 'officer');
   
-  const pendingParticipations = participations.filter((p) => p.approvalStatus === 'pending');
+  const pendingParticipations = participations.filter((p) => 
+    p.approvalStatus === 'pending'
+  );
   const historyParticipations = participations.filter((p) => p.approvalStatus !== 'pending');
 
   return (
@@ -506,7 +527,7 @@ export default function SocialPortal({
           )}
 
           {/* Join CSR Activity Modal / Inline Form if active */}
-          {activeActivityId && evidenceRequiredEnabled && (
+          {activeParticipationId && (
             <div className="glass-card" style={{ borderLeft: '4px solid var(--accent-social)' }}>
               <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Submit Evidence for CSR Activity</h3>
               <form onSubmit={handleRegisterWithEvidence} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -518,17 +539,19 @@ export default function SocialPortal({
                     placeholder="e.g. /proofs/cleanup_receipt.jpg or description of task"
                     value={proofUrl}
                     onChange={(e) => setProofUrl(e.target.value)}
-                    required
+                    required={evidenceRequiredEnabled}
                   />
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    Corporate Governance rule: An evidence file or proof path must be attached to qualify for approval.
-                  </p>
+                  {evidenceRequiredEnabled && (
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      Corporate Governance rule: An evidence file or proof path must be attached to qualify for approval.
+                    </p>
+                  )}
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button type="submit" className="btn btn-primary" disabled={submitting}>
-                    {submitting ? 'Submitting...' : '🚀 Submit Log'}
+                    {submitting ? 'Submitting...' : '🚀 Submit Request'}
                   </button>
-                  <button type="button" className="btn btn-secondary" onClick={() => setActiveActivityId(null)}>
+                  <button type="button" className="btn btn-secondary" onClick={() => setActiveParticipationId(null)}>
                     Cancel
                   </button>
                 </div>
@@ -602,18 +625,29 @@ export default function SocialPortal({
                       </span>
                       
                       {isRegistered ? (
-                        <span 
-                          className={`pill ${
-                            userPart?.approvalStatus === 'approved' 
-                              ? 'pill-success' 
-                              : userPart?.approvalStatus === 'rejected'
-                              ? 'pill-error'
-                              : 'pill-warning'
-                          }`}
-                          style={{ fontSize: '0.65rem' }}
-                        >
-                          {userPart?.approvalStatus.toUpperCase()}
-                        </span>
+                        userPart?.approvalStatus === 'joined' ? (
+                          <button 
+                            className="btn btn-primary" 
+                            style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
+                            onClick={() => setActiveParticipationId(userPart.id)}
+                            disabled={submitting}
+                          >
+                            Request Approval
+                          </button>
+                        ) : (
+                          <span 
+                            className={`pill ${
+                              userPart?.approvalStatus === 'approved' 
+                                ? 'pill-success' 
+                                : userPart?.approvalStatus === 'rejected'
+                                ? 'pill-error'
+                                : 'pill-warning'
+                            }`}
+                            style={{ fontSize: '0.65rem' }}
+                          >
+                            {userPart?.approvalStatus.toUpperCase()}
+                          </span>
+                        )
                       ) : (
                         <button 
                           className="btn btn-secondary" 
@@ -883,6 +917,7 @@ export default function SocialPortal({
           </div>
         </div>
       )}
+
     </div>
   );
 }

@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     }
 
     let updatedEmployee = part.employee;
-    let awardedBadges: any[] = [];
+    const awardedBadges: any[] = [];
 
     if (status === 'approved') {
       const xpToAdd = 50; // award 50 XP
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
       employeeXp: updatedEmployee.xp,
       employeePoints: updatedEmployee.points,
     });
-  } catch (error: any) {
+  } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
