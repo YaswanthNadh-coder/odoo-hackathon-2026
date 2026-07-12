@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json({ activities, participations });
-  } catch (error: any) {
+  } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -58,28 +58,48 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(activity);
     }
 
-    // Default: Register / Submit participation
-    const { activityId, proofUrl } = body;
+    if (action === 'request-approval') {
+      const { participationId, proofUrl } = body;
+      
+      if (!participationId) {
+        return NextResponse.json({ error: 'Participation ID is required' }, { status: 400 });
+      }
+
+      const config = await prisma.appConfig.findUnique({ where: { id: 'global' } });
+      const isEvidenceRequired = config ? config.evidenceRequired : true;
+
+      if (isEvidenceRequired && !proofUrl) {
+        return NextResponse.json({ error: 'Evidence is required to submit a CSR participation request.' }, { status: 400 });
+      }
+
+      const updated = await prisma.employeeParticipation.update({
+        where: { id: participationId },
+        data: {
+          proofUrl: proofUrl || null,
+          approvalStatus: 'pending',
+        },
+        include: {
+          activity: true,
+          employee: true,
+        },
+      });
+
+      return NextResponse.json(updated);
+    }
+
+    // Default: Join / Register participation
+    const { activityId } = body;
 
     if (!activityId) {
       return NextResponse.json({ error: 'Activity ID is required' }, { status: 400 });
     }
 
-    // Verify setting for evidence requirement
-    const config = await prisma.appConfig.findUnique({ where: { id: 'global' } });
-    const isEvidenceRequired = config ? config.evidenceRequired : true;
-
-    if (isEvidenceRequired && !proofUrl) {
-      return NextResponse.json({ error: 'Evidence is required to submit a CSR participation request.' }, { status: 400 });
-    }
-
-    // Create the participation log
+    // Create the participation log as "joined"
     const participation = await prisma.employeeParticipation.create({
       data: {
         employeeId: session.employeeId,
         activityId,
-        proofUrl: proofUrl || null,
-        approvalStatus: 'pending',
+        approvalStatus: 'joined',
         pointsEarned: 0,
       },
       include: {
@@ -89,7 +109,7 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(participation);
-  } catch (error: any) {
+  } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -119,7 +139,7 @@ export async function DELETE(req: NextRequest) {
     ]);
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
+  } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

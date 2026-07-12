@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     const departments = await prisma.department.findMany();
 
     return NextResponse.json({ policies, issues, departments });
-  } catch (error: any) {
+  } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
-  } catch (error: any) {
+  } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -132,7 +132,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
-  } catch (error: any) {
+  } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

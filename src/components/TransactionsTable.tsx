@@ -49,7 +49,7 @@ export default function TransactionsTable({
       } else {
         alert('Failed to delete transaction log.');
       }
-    } catch (err) {
+    } catch {
       console.error(err);
     } finally {
       setSubmitting(false);
@@ -80,7 +80,7 @@ export default function TransactionsTable({
       } else {
         alert('Failed to save changes.');
       }
-    } catch (err) {
+    } catch {
       console.error(err);
     } finally {
       setSubmitting(false);

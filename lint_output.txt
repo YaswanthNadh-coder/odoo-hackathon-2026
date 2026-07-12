@@ -1,0 +1,160 @@
+
+> ecosphere-app@0.1.0 lint
+> eslint
+
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/prisma/seed.ts
+   71:9  warning  'empMarcus' is assigned a value but never used       @typescript-eslint/no-unused-vars
+  115:9  warning  'chZeroWaste' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  126:9  warning  'badgeSocialite' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/app/api/auth/login/route.ts
+  41:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/app/api/auth/logout/route.ts
+  4:28  warning  'req' is defined but never used           @typescript-eslint/no-unused-vars
+  8:19  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/app/api/categories/route.ts
+   11:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   38:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   66:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  101:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/app/api/dashboard/stats/route.ts
+  8:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/app/api/departments/route.ts
+  29:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  59:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  93:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/app/api/environmental/factors/route.ts
+   27:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   74:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  103:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/app/api/environmental/route.ts
+    7:11  warning  'session' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   23:19  error    Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+  119:19  error    Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+  161:19  error    Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+  185:19  error    Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/app/api/environmental/spending/route.ts
+   5:27  warning  'req' is defined but never used           @typescript-eslint/no-unused-vars
+  18:19  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  92:19  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/app/api/gamification/redeem/route.ts
+  69:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/app/api/gamification/route.ts
+    5:27  warning  'req' is defined but never used                    @typescript-eslint/no-unused-vars
+   31:25  error    Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+   40:19  error    Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  143:13  warning  'prevProgress' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  146:28  error    Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  147:28  error    Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  240:19  error    Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+  270:19  error    Unexpected any. Specify a different type           @typescript-eslint/no-explicit-any
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/app/api/governance/acknowledge/route.ts
+  38:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/app/api/governance/route.ts
+    5:27  warning  'req' is defined but never used           @typescript-eslint/no-unused-vars
+   27:19  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   95:19  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  135:19  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/app/api/settings/route.ts
+  27:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  73:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/app/api/social/approve/route.ts
+   42:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  136:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/app/api/social/route.ts
+    5:27  warning  'req' is defined but never used               @typescript-eslint/no-unused-vars
+    7:11  warning  'session' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   24:19  error    Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+   92:19  error    Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+  122:19  error    Unexpected any. Specify a different type      @typescript-eslint/no-explicit-any
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/app/api/social/training/route.ts
+  33:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/app/environmental/page.tsx
+  3:29  warning  'DEPT_CARBON_TARGETS' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/app/gamification/page.tsx
+  37:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  38:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/app/login/page.tsx
+  43:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/app/page.tsx
+  10:9  warning  'session' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/components/EnvironmentalForms.tsx
+  102:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  129:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  175:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  218:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  254:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/components/GamificationPortal.tsx
+   84:46  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  124:14  warning  'err' is defined but never used           @typescript-eslint/no-unused-vars
+  169:14  warning  'err' is defined but never used           @typescript-eslint/no-unused-vars
+  214:14  warning  'err' is defined but never used           @typescript-eslint/no-unused-vars
+  242:14  warning  'err' is defined but never used           @typescript-eslint/no-unused-vars
+  269:14  warning  'err' is defined but never used           @typescript-eslint/no-unused-vars
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/components/GovernancePortal.tsx
+   94:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  133:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  161:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  205:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  235:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  263:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/components/SettingsPortal.tsx
+  130:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  175:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  213:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  266:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  302:14  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/components/SocialPortal.tsx
+   64:46  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-explicit-any
+   79:9   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/components/SocialPortal.tsx:79:9
+  77 |       const stored = localStorage.getItem(`completed_trainings_${currentUser?.employeeId}`);
+  78 |       if (stored) {
+> 79 |         setCompletedTrainings(JSON.parse(stored));
+     |         ^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  80 |       }
+  81 |     }
+  82 |   }, [currentUser?.employeeId]);  react-hooks/set-state-in-effect
+  141:14  warning  'err' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+  182:14  warning  'err' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+  210:14  warning  'err' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+  241:14  warning  'err' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+  271:14  warning  'err' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+
+/Users/yukthakesavi/Downloads/odoo hackathon 2026/src/lib/session.ts
+  44:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 84 problems (44 errors, 40 warnings)
+

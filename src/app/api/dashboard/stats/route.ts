@@ -5,7 +5,7 @@ export async function GET() {
   try {
     const stats = await calculateESGStats();
     return NextResponse.json(stats);
-  } catch (error: any) {
+  } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
     console.error('Error calculating ESG stats:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

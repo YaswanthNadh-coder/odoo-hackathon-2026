@@ -121,7 +121,7 @@ export default function GamificationPortal({
       } else {
         setErrorMessage(data.error || 'Failed to join challenge.');
       }
-    } catch (err) {
+    } catch {
       setErrorMessage('Unexpected error joining challenge.');
     } finally {
       setSubmitting(false);
@@ -166,7 +166,7 @@ export default function GamificationPortal({
       } else {
         setErrorMessage(data.error || 'Failed to update progress.');
       }
-    } catch (err) {
+    } catch {
       setErrorMessage('Unexpected error updating progress.');
     } finally {
       setSubmitting(false);
@@ -211,7 +211,7 @@ export default function GamificationPortal({
         const data = await res.json();
         setErrorMessage(data.error || 'Failed to create challenge.');
       }
-    } catch (err) {
+    } catch {
       setErrorMessage('Error creating challenge.');
     } finally {
       setSubmitting(false);
@@ -239,7 +239,7 @@ export default function GamificationPortal({
         const data = await res.json();
         setErrorMessage(data.error || 'Failed to delete challenge.');
       }
-    } catch (err) {
+    } catch {
       setErrorMessage('Error deleting challenge.');
     } finally {
       setSubmitting(false);
@@ -266,7 +266,7 @@ export default function GamificationPortal({
       } else {
         setErrorMessage(data.error || 'Failed to redeem reward.');
       }
-    } catch (err) {
+    } catch {
       setErrorMessage('Unexpected error during redemption.');
     } finally {
       setRedeemingId(null);

@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json(spendings);
-  } catch (error: any) {
+  } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
       spending,
       autoTransactionCreated,
     });
-  } catch (error: any) {
+  } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

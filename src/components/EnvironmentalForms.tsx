@@ -99,7 +99,7 @@ export default function EnvironmentalForms({
         const data = await res.json();
         setErrorMessage(data.error || 'Failed to log transaction.');
       }
-    } catch (err) {
+    } catch {
       setErrorMessage('An unexpected error occurred.');
     } finally {
       setIsLoading(false);
@@ -126,7 +126,7 @@ export default function EnvironmentalForms({
       } else {
         setErrorMessage(data.error || 'Failed to ingest ERP data.');
       }
-    } catch (err) {
+    } catch {
       setErrorMessage('An unexpected error occurred.');
     } finally {
       setIsLoading(false);
@@ -172,7 +172,7 @@ export default function EnvironmentalForms({
       } else {
         setErrorMessage(data.error || 'Failed to log spending.');
       }
-    } catch (err) {
+    } catch {
       setErrorMessage('Unexpected error logging spending.');
     } finally {
       setIsLoading(false);
@@ -215,7 +215,7 @@ export default function EnvironmentalForms({
         const data = await res.json();
         setErrorMessage(data.error || 'Failed to save factor.');
       }
-    } catch (err) {
+    } catch {
       setErrorMessage('Error saving emission factor.');
     } finally {
       setIsLoading(false);
@@ -251,7 +251,7 @@ export default function EnvironmentalForms({
         const data = await res.json();
         setErrorMessage(data.error || 'Failed to delete factor.');
       }
-    } catch (err) {
+    } catch {
       setErrorMessage('Error deleting factor.');
     } finally {
       setIsLoading(false);

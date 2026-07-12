@@ -71,7 +71,7 @@ export async function setSession(employeeId: string): Promise<boolean> {
     });
 
     return true;
-  } catch (err) {
+  } catch {
     console.error('Session write error:', err);
     return false;
   }
@@ -81,7 +81,7 @@ export async function destroySession(): Promise<void> {
   try {
     const cookieStore = await cookies();
     cookieStore.delete('ecosphere_session');
-  } catch (err) {
+  } catch {
     console.error('Session destroy error:', err);
   }
 }
