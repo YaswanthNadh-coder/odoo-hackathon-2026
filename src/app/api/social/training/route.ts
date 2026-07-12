@@ -16,13 +16,21 @@ export async function POST(req: NextRequest) {
     }
 
     // Award XP/Points to the employee for completing the training
-    const updatedEmp = await prisma.employee.update({
-      where: { id: session.employeeId },
-      data: {
-        xp: { increment: xpReward || 30 },
-        points: { increment: xpReward || 30 },
-      },
-    });
+    const [updatedEmp] = await prisma.$transaction([
+      prisma.employee.update({
+        where: { id: session.employeeId },
+        data: {
+          xp: { increment: xpReward || 30 },
+          points: { increment: xpReward || 30 },
+        },
+      }),
+      prisma.employeeTraining.create({
+        data: {
+          employeeId: session.employeeId,
+          trainingId: trainingId,
+        },
+      }),
+    ]);
 
     return NextResponse.json({
       success: true,

@@ -41,19 +41,29 @@ interface SocialPortalProps {
     departmentId: string;
     departmentCode: string;
   } | null;
+  diversityStats: {
+    male: number;
+    female: number;
+    nonBinary: number;
+    total: number;
+  };
+  trainings: {
+    id: string;
+    name: string;
+    description: string | null;
+    xp: number;
+  }[];
+  initialCompletedTrainings: string[];
 }
-
-const TRAININGS = [
-  { id: 'conduct', name: 'Annual ESG Code of Conduct Training', description: 'Mandatory handbook sign-off on ethical policies, anti-corruption, and diversity codes.', xp: 30 },
-  { id: 'footprint', name: 'Carbon Auditing & Bookkeeping Workshop', description: 'Advanced seminar on Scope 1, 2, and 3 accounting calculation mechanics.', xp: 40 },
-  { id: 'supply', name: 'Sustainable Procurement Seminar', description: 'Guidelines on vetting vendors against global sustainability directives.', xp: 30 },
-];
 
 export default function SocialPortal({
   activities,
   participations,
   evidenceRequiredEnabled,
   currentUser,
+  diversityStats,
+  trainings,
+  initialCompletedTrainings,
 }: SocialPortalProps) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -70,18 +80,8 @@ export default function SocialPortal({
   const [activityDesc, setActivityDesc] = useState('');
   const [activityDate, setActivityDate] = useState('');
 
-  // Local storage for completed training ids
-  const [completedTrainings, setCompletedTrainings] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem(`completed_trainings_${currentUser?.employeeId}`);
-      if (stored) {
-        // eslint-disable-next-line
-        setCompletedTrainings(JSON.parse(stored));
-      }
-    }
-  }, [currentUser?.employeeId]);
+  // Local state for completed training ids
+  const [completedTrainings, setCompletedTrainings] = useState<string[]>(initialCompletedTrainings);
 
   const isOfficerOrManager = currentUser && (currentUser.role === 'officer' || currentUser.role === 'manager');
 
@@ -299,9 +299,7 @@ export default function SocialPortal({
 
       const data = await res.json();
       if (res.ok) {
-        const updated = [...completedTrainings, trainingId];
-        setCompletedTrainings(updated);
-        localStorage.setItem(`completed_trainings_${currentUser?.employeeId}`, JSON.stringify(updated));
+        setCompletedTrainings([...completedTrainings, trainingId]);
         setSuccessMessage(`Training Completed successfully! Awarded +${xpReward} XP & Points.`);
         router.refresh();
       } else {
@@ -354,12 +352,16 @@ export default function SocialPortal({
             <div>
               <div className="flex-between" style={{ fontSize: '0.8rem', marginBottom: '0.25rem' }}>
                 <span style={{ fontWeight: 600 }}>Gender Representation Ratios</span>
-                <span style={{ color: 'var(--text-muted)' }}>46% Female | 48% Male | 6% Non-Binary</span>
+                <span style={{ color: 'var(--text-muted)' }}>
+                  {Math.round((diversityStats.female / diversityStats.total) * 100)}% Female | 
+                  {Math.round((diversityStats.male / diversityStats.total) * 100)}% Male | 
+                  {Math.round((diversityStats.nonBinary / diversityStats.total) * 100)}% Non-Binary
+                </span>
               </div>
               <div style={{ display: 'flex', width: '100%', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
-                <div style={{ width: '46%', background: 'var(--accent-overall-gradient)' }} />
-                <div style={{ width: '48%', background: 'rgba(255,255,255,0.15)' }} />
-                <div style={{ width: '6%', background: 'var(--accent-gov)' }} />
+                <div style={{ width: `${Math.round((diversityStats.female / diversityStats.total) * 100)}%`, background: 'var(--accent-overall-gradient)' }} />
+                <div style={{ width: `${Math.round((diversityStats.male / diversityStats.total) * 100)}%`, background: 'rgba(255,255,255,0.15)' }} />
+                <div style={{ width: `${Math.round((diversityStats.nonBinary / diversityStats.total) * 100)}%`, background: 'var(--accent-gov)' }} />
               </div>
             </div>
 
@@ -391,7 +393,7 @@ export default function SocialPortal({
         <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', height: '240px' }}>
           <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>🎓 ESG Compliance Training</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', overflowY: 'auto', flexGrow: 1 }}>
-            {TRAININGS.map((tr) => {
+            {trainings.map((tr) => {
               const isCompleted = completedTrainings.includes(tr.id);
               return (
                 <div key={tr.id} style={{ padding: '0.4rem 0.6rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glow)', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

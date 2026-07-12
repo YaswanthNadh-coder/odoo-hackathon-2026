@@ -90,6 +90,7 @@ export default function GamificationPortal({
   const [challengeDesc, setChallengeDesc] = useState('');
   const [challengeXp, setChallengeXp] = useState('100');
   const [challengeDifficulty, setChallengeDifficulty] = useState('medium');
+  const [challengeStatus, setChallengeStatus] = useState('active');
   const [challengeDeadline, setChallengeDeadline] = useState('');
 
   // Redeeming state
@@ -202,6 +203,7 @@ export default function GamificationPortal({
       description: challengeDesc,
       xp: parseInt(challengeXp),
       difficulty: challengeDifficulty,
+      status: challengeStatus,
       deadline: challengeDeadline ? new Date(challengeDeadline) : null,
     } : {
       action: 'create-challenge',
@@ -209,6 +211,7 @@ export default function GamificationPortal({
       description: challengeDesc,
       xp: parseInt(challengeXp),
       difficulty: challengeDifficulty,
+      status: challengeStatus,
       deadline: challengeDeadline ? new Date(challengeDeadline) : null,
     };
 
@@ -240,6 +243,7 @@ export default function GamificationPortal({
     setChallengeDesc(ch.description || '');
     setChallengeXp(String(ch.xp));
     setChallengeDifficulty(ch.difficulty);
+    setChallengeStatus(ch.status);
     setChallengeDeadline(ch.deadline ? ch.deadline.substring(0, 10) : '');
     setShowChallengeForm(true);
   };
@@ -250,6 +254,7 @@ export default function GamificationPortal({
     setChallengeDesc('');
     setChallengeXp('100');
     setChallengeDifficulty('medium');
+    setChallengeStatus('active');
     setChallengeDeadline('');
     setShowChallengeForm(false);
   };
@@ -520,14 +525,25 @@ export default function GamificationPortal({
                   </select>
                 </div>
               </div>
-              <div className="grid-cols-2" style={{ gap: '1rem' }}>
-                <div className="form-group">
+              <div className="grid-cols-3" style={{ gap: '1rem' }}>
+                <div className="form-group" style={{ gridColumn: 'span 2' }}>
                   <label className="form-label">Description / Directives</label>
                   <input type="text" className="form-input" placeholder="Detail the challenge rules..." value={challengeDesc} onChange={(e) => setChallengeDesc(e.target.value)} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Deadline Date (Optional)</label>
                   <input type="date" className="form-input" value={challengeDeadline} onChange={(e) => setChallengeDeadline(e.target.value)} />
+                </div>
+              </div>
+              <div className="grid-cols-3" style={{ gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Challenge Status</label>
+                  <select className="form-select" value={challengeStatus} onChange={(e) => setChallengeStatus(e.target.value)}>
+                    <option value="draft">Draft</option>
+                    <option value="active">Active</option>
+                    <option value="review">Under Review</option>
+                    <option value="archived">Archived</option>
+                  </select>
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
@@ -541,7 +557,9 @@ export default function GamificationPortal({
         )}
 
         <div className="grid-cols-3">
-          {challenges.map((ch) => {
+          {challenges
+            .filter((ch) => isOfficerOrManager || ch.status === 'active')
+            .map((ch) => {
             const userPart = participations.find((p) => p.challengeId === ch.id);
             const isJoined = !!userPart;
             const isCompleted = userPart?.progress === 100;
@@ -559,12 +577,20 @@ export default function GamificationPortal({
                   flexDirection: 'column',
                   height: '240px',
                   border: isCompleted ? '1.5px solid rgba(16, 185, 129, 0.2)' : '1px solid var(--border-glow)',
+                  opacity: ch.status === 'active' ? 1 : 0.6,
                 }}
               >
                 <div className="flex-between" style={{ marginBottom: '0.5rem' }}>
-                  <span className={`pill ${diffColor}`} style={{ fontSize: '0.6rem' }}>
-                    {ch.difficulty.toUpperCase()}
-                  </span>
+                  <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+                    <span className={`pill ${diffColor}`} style={{ fontSize: '0.6rem' }}>
+                      {ch.difficulty.toUpperCase()}
+                    </span>
+                    {isOfficerOrManager && ch.status !== 'active' && (
+                      <span className="pill pill-warning" style={{ fontSize: '0.6rem' }}>
+                        {ch.status.toUpperCase()}
+                      </span>
+                    )}
+                  </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--accent-overall)' }}>
                       ⭐ +{ch.xp} XP

@@ -26,6 +26,16 @@ interface ComplianceIssue {
   };
 }
 
+interface Audit {
+  id: string;
+  title: string;
+  description: string | null;
+  auditor: string;
+  date: string;
+  status: string;
+  findings: string | null;
+}
+
 interface Department {
   id: string;
   name: string;
@@ -35,6 +45,7 @@ interface Department {
 interface GovernancePortalProps {
   policies: Policy[];
   issues: ComplianceIssue[];
+  audits: Audit[];
   departments: Department[];
   currentUser: {
     employeeId: string;
@@ -48,6 +59,7 @@ interface GovernancePortalProps {
 export default function GovernancePortal({
   policies,
   issues,
+  audits,
   departments,
   currentUser,
 }: GovernancePortalProps) {
@@ -69,6 +81,16 @@ export default function GovernancePortal({
   const [description, setDescription] = useState('');
   const [owner, setOwner] = useState('');
   const [dueDate, setDueDate] = useState('');
+
+  // Audit form fields
+  const [showAuditForm, setShowAuditForm] = useState(false);
+  const [editingAuditId, setEditingAuditId] = useState<string | null>(null);
+  const [auditTitle, setAuditTitle] = useState('');
+  const [auditDescription, setAuditDescription] = useState('');
+  const [auditor, setAuditor] = useState('');
+  const [auditDate, setAuditDate] = useState('');
+  const [auditStatus, setAuditStatus] = useState('pending');
+  const [auditFindings, setAuditFindings] = useState('');
 
   const isOfficerOrManager = currentUser && (currentUser.role === 'officer' || currentUser.role === 'manager');
 
@@ -283,6 +305,96 @@ export default function GovernancePortal({
       }
     } catch {
       setErrorMessage('Error deleting compliance issue.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Create or Edit Audit
+  const handleSaveAudit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!auditTitle || !auditor) {
+      setErrorMessage('Title and Auditor are required.');
+      return;
+    }
+    setSubmitting(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    const url = '/api/governance/audits';
+    const method = editingAuditId ? 'PUT' : 'POST';
+    const body = {
+      id: editingAuditId,
+      title: auditTitle,
+      description: auditDescription,
+      auditor,
+      date: auditDate ? new Date(auditDate) : undefined,
+      status: auditStatus,
+      findings: auditFindings,
+    };
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (res.ok) {
+        setSuccessMessage(editingAuditId ? 'Audit updated successfully!' : 'Audit logged successfully!');
+        resetAuditForm();
+        router.refresh();
+      } else {
+        const data = await res.json();
+        setErrorMessage(data.error || 'Failed to save audit.');
+      }
+    } catch {
+      setErrorMessage('Error saving audit.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEditAuditClick = (audit: Audit) => {
+    setEditingAuditId(audit.id);
+    setAuditTitle(audit.title);
+    setAuditDescription(audit.description || '');
+    setAuditor(audit.auditor);
+    setAuditDate(audit.date ? audit.date.substring(0, 10) : '');
+    setAuditStatus(audit.status);
+    setAuditFindings(audit.findings || '');
+    setShowAuditForm(true);
+  };
+
+  const resetAuditForm = () => {
+    setEditingAuditId(null);
+    setAuditTitle('');
+    setAuditDescription('');
+    setAuditor('');
+    setAuditDate('');
+    setAuditStatus('pending');
+    setAuditFindings('');
+    setShowAuditForm(false);
+  };
+
+  // Delete Audit
+  const handleDeleteAudit = async (auditId: string) => {
+    if (!confirm('Are you sure you want to delete this audit record?')) return;
+    setSubmitting(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const res = await fetch(`/api/governance/audits?id=${auditId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setSuccessMessage('Audit deleted successfully.');
+        router.refresh();
+      } else {
+        const data = await res.json();
+        setErrorMessage(data.error || 'Failed to delete audit.');
+      }
+    } catch {
+      setErrorMessage('Error deleting audit.');
     } finally {
       setSubmitting(false);
     }
@@ -561,6 +673,129 @@ export default function GovernancePortal({
                 <tr>
                   <td colSpan={7} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '1.5rem' }}>
                     🟢 No compliance issues recorded in the database.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Row 3: Audits Ledger */}
+      <div>
+        <div className="flex-between mb-6">
+          <h3 style={{ fontSize: '1.25rem' }}>📋 Company-Wide Audits Ledger</h3>
+          {isOfficerOrManager && (
+            <button className="btn btn-env" onClick={() => setShowAuditForm(!showAuditForm)}>
+              {showAuditForm ? '✕ Close Form' : '➕ Log New Audit'}
+            </button>
+          )}
+        </div>
+
+        {/* Audit Form */}
+        {showAuditForm && isOfficerOrManager && (
+          <div className="glass-card mb-6" style={{ borderLeft: '4px solid var(--accent-social)' }}>
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem' }}>
+              {editingAuditId ? '✏️ Edit Audit Record' : 'Log New External/Internal Audit'}
+            </h3>
+            <form onSubmit={handleSaveAudit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="grid-cols-2" style={{ gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Audit Title</label>
+                  <input type="text" className="form-input" placeholder="e.g. Annual ISO 14001 Review" value={auditTitle} onChange={(e) => setAuditTitle(e.target.value)} required />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Auditor (Internal or Third-Party)</label>
+                  <input type="text" className="form-input" placeholder="e.g. GreenShield Certifications" value={auditor} onChange={(e) => setAuditor(e.target.value)} required />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Description / Scope</label>
+                <textarea className="form-textarea" rows={2} placeholder="Describe the scope of this audit..." value={auditDescription} onChange={(e) => setAuditDescription(e.target.value)} />
+              </div>
+              
+              <div className="grid-cols-2" style={{ gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Date</label>
+                  <input type="date" className="form-input" value={auditDate} onChange={(e) => setAuditDate(e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Status</label>
+                  <select className="form-select" value={auditStatus} onChange={(e) => setAuditStatus(e.target.value)}>
+                    <option value="pending">Pending</option>
+                    <option value="passed">Passed</option>
+                    <option value="failed">Failed / Non-Compliant</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Findings / Remarks</label>
+                <textarea className="form-textarea" rows={3} placeholder="List key findings, non-conformities, or recommendations..." value={auditFindings} onChange={(e) => setAuditFindings(e.target.value)} />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={resetAuditForm}>Cancel</button>
+                <button type="submit" className="btn btn-env" disabled={submitting}>
+                  {editingAuditId ? '💾 Save Changes' : '💾 Log Audit'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Audits Table */}
+        <div className="table-container">
+          <table className="custom-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Title & Scope</th>
+                <th>Auditor</th>
+                <th>Status</th>
+                <th>Findings</th>
+                {isOfficerOrManager && <th>Actions</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {audits.map((audit) => {
+                let statusColor = 'pill-warning';
+                if (audit.status === 'passed') statusColor = 'pill-success';
+                else if (audit.status === 'failed') statusColor = 'pill-error';
+
+                return (
+                  <tr key={audit.id}>
+                    <td style={{ fontSize: '0.85rem' }}>{formatDate(audit.date)}</td>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{audit.title}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{audit.description}</div>
+                    </td>
+                    <td>{audit.auditor}</td>
+                    <td>
+                      <span className={`pill ${statusColor}`} style={{ fontSize: '0.65rem' }}>
+                        {audit.status.toUpperCase()}
+                      </span>
+                    </td>
+                    <td style={{ fontSize: '0.85rem' }}>{audit.findings || '-'}</td>
+                    {isOfficerOrManager && (
+                      <td>
+                        <div style={{ display: 'flex', gap: '0.25rem' }}>
+                          <button className="btn" style={{ padding: '0.25rem', background: 'transparent' }} onClick={() => handleEditAuditClick(audit)}>
+                            ✏️
+                          </button>
+                          <button className="btn" style={{ padding: '0.25rem', background: 'transparent' }} onClick={() => handleDeleteAudit(audit.id)}>
+                            🗑️
+                          </button>
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
+              {audits.length === 0 && (
+                <tr>
+                  <td colSpan={isOfficerOrManager ? 6 : 5} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '1.5rem' }}>
+                    📋 No audits logged yet.
                   </td>
                 </tr>
               )}

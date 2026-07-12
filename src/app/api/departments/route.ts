@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
         code: code.toUpperCase(),
         headName: headName || '',
         employeeCount: employeeCount ? parseInt(employeeCount) : 0,
-        carbonTarget: carbonTarget ? parseFloat(carbonTarget) : 10.0,
+        carbonTarget: carbonTarget !== undefined && carbonTarget !== null ? parseFloat(carbonTarget) : 10.0,
         status: 'active',
       },
     });
@@ -52,7 +52,7 @@ export async function PUT(req: NextRequest) {
         code: code.toUpperCase(),
         headName: headName || '',
         employeeCount: employeeCount ? parseInt(employeeCount) : 0,
-        carbonTarget: carbonTarget ? parseFloat(carbonTarget) : 10.0,
+        carbonTarget: carbonTarget !== undefined && carbonTarget !== null ? parseFloat(carbonTarget) : 10.0,
         status: status || 'active',
       },
     });

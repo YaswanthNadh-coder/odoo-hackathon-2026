@@ -24,6 +24,11 @@ export default async function GovernancePage() {
     orderBy: { dueDate: 'asc' },
   });
 
+  // Fetch audits
+  const audits = await prisma.audit.findMany({
+    orderBy: { date: 'desc' },
+  });
+
   // Fetch departments for dropdown
   const departments = await prisma.department.findMany({
     orderBy: { name: 'asc' },
@@ -52,6 +57,16 @@ export default async function GovernancePage() {
     })) : [],
   }));
 
+  const serializedAudits = audits.map((audit) => ({
+    id: audit.id,
+    title: audit.title,
+    description: audit.description,
+    auditor: audit.auditor,
+    date: audit.date.toISOString(),
+    status: audit.status,
+    findings: audit.findings,
+  }));
+
   const serializedDepartments = departments.map((dept) => ({
     id: dept.id,
     name: dept.name,
@@ -72,6 +87,7 @@ export default async function GovernancePage() {
       <GovernancePortal
         policies={serializedPolicies}
         issues={serializedIssues}
+        audits={serializedAudits}
         departments={serializedDepartments}
         currentUser={session}
       />
