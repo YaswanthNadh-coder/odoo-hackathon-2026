@@ -66,11 +66,21 @@ export default function SocialPortal({
   initialCompletedTrainings,
 }: SocialPortalProps) {
   const router = useRouter();
+
+  // Polling for real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      router.refresh();
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [router]);
+
   const [submitting, setSubmitting] = useState(false);
   const [activeParticipationId, setActiveParticipationId] = useState<string | null>(null);
   const [proofUrl, setProofUrl] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [newBadges, setNewBadges] = useState<any[]>([]);
 
   // Activity creation fields
@@ -124,9 +134,11 @@ export default function SocialPortal({
 
   const handleRegisterWithEvidence = (e: React.FormEvent) => {
     e.preventDefault();
+    setFieldErrors({});
     if (!activeParticipationId) return;
 
-    if (evidenceRequiredEnabled && !proofUrl) {
+    if (evidenceRequiredEnabled && !proofUrl.trim()) {
+      setFieldErrors({ proofUrl: 'Proof URL is required' });
       setErrorMessage('Proof file URL is required under current governance rules.');
       return;
     }
@@ -165,7 +177,9 @@ export default function SocialPortal({
   // Create or Edit CSR Activity
   const handleCreateActivity = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activityTitle) {
+    setFieldErrors({});
+    if (!activityTitle.trim()) {
+      setFieldErrors({ activityTitle: 'Activity title is required' });
       setErrorMessage('Activity title is required.');
       return;
     }
@@ -508,7 +522,7 @@ export default function SocialPortal({
               <label className="form-label">Evidence File URL or Description</label>
               <input
                 type="text"
-                className="form-input"
+                className={`form-input ${fieldErrors.proofUrl ? 'input-error' : ''}`}
                 placeholder="e.g. /proofs/cleanup_receipt.jpg or description of task"
                 value={proofUrl}
                 onChange={(e) => setProofUrl(e.target.value)}
@@ -553,7 +567,7 @@ export default function SocialPortal({
               <div className="grid-cols-2" style={{ gap: '1rem' }}>
                 <div className="form-group">
                   <label className="form-label">Activity Title</label>
-                  <input type="text" className="form-input" placeholder="e.g. River Bank Restoration" value={activityTitle} onChange={(e) => setActivityTitle(e.target.value)} required />
+                  <input type="text" className={`form-input ${fieldErrors.activityTitle ? 'input-error' : ''}`} placeholder="e.g. River Bank Restoration" value={activityTitle} onChange={(e) => setActivityTitle(e.target.value)} required />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Event Date</label>

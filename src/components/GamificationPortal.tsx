@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface Challenge {
   id: string;
@@ -77,6 +77,15 @@ export default function GamificationPortal({
   currentUser,
 }: GamificationPortalProps) {
   const router = useRouter();
+
+  // Polling for real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      router.refresh();
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [router]);
+
   const [submitting, setSubmitting] = useState(false);
   const [progressValues, setProgressValues] = useState<Record<string, number>>({});
   const [errorMessage, setErrorMessage] = useState('');
