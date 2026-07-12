@@ -1,8 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { formatDate } from '@/lib/date';
+import { useState, useEffect } from 'react';
 
 interface CSRActivity {
   id: string;
@@ -84,6 +83,12 @@ interface SocialPortalProps {
   } | null;
 }
 
+const TRAININGS = [
+  { id: 'conduct', name: 'Annual ESG Code of Conduct Training', description: 'Mandatory handbook sign-off on ethical policies, anti-corruption, and diversity codes.', xp: 30 },
+  { id: 'footprint', name: 'Carbon Auditing & Bookkeeping Workshop', description: 'Advanced seminar on Scope 1, 2, and 3 accounting calculation mechanics.', xp: 40 },
+  { id: 'supply', name: 'Sustainable Procurement Seminar', description: 'Guidelines on vetting vendors against global sustainability directives.', xp: 30 },
+];
+
 export default function SocialPortal({
   activities,
   participations,
@@ -110,8 +115,29 @@ export default function SocialPortal({
   const [activityDesc, setActivityDesc] = useState('');
   const [activityDate, setActivityDate] = useState('');
 
+  // Local storage for completed training ids
+  const [completedTrainings, setCompletedTrainings] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(`completed_trainings_${currentUser?.employeeId}`);
+      if (stored) {
+        setCompletedTrainings(JSON.parse(stored));
+      }
+    }
+  }, [currentUser?.employeeId]);
+
   const isOfficerOrManager = currentUser && (currentUser.role === 'officer' || currentUser.role === 'manager');
 
+  // Format dates securely
+  const formatDate = (dateString: string) => {
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return 'N/A';
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
   const handleJoinActivity = async (activityId: string) => {
     setActiveActivityId(activityId);
     setErrorMessage('');
@@ -361,6 +387,7 @@ export default function SocialPortal({
   }, {});
 
   const canApprove = currentUser && (currentUser.role === 'manager' || currentUser.role === 'officer');
+  
   const pendingParticipations = participations.filter((p) => p.approvalStatus === 'pending');
   const historyParticipations = participations.filter((p) => p.approvalStatus !== 'pending');
 

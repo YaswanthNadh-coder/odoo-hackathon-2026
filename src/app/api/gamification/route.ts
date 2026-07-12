@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
       include: {
         employees: session ? {
           where: { employeeId: session.employeeId },
-        } : false,
+        } : undefined,
       },
     });
 

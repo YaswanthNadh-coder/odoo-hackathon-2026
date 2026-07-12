@@ -62,7 +62,6 @@ interface Redemption {
     name: string;
   };
 }
-
 interface GamificationPortalProps {
   challenges: Challenge[];
   badges: Badge[];
@@ -108,6 +107,9 @@ export default function GamificationPortal({
   const [challengeDifficulty, setChallengeDifficulty] = useState('medium');
   const [challengeDeadline, setChallengeDeadline] = useState('');
   const [challengeEvidenceRequired, setChallengeEvidenceRequired] = useState(false);
+
+  // Redeeming state
+  const [redeemingId, setRedeemingId] = useState<string | null>(null);
 
   const isOfficerOrManager = currentUser && (currentUser.role === 'officer' || currentUser.role === 'manager');
 
@@ -531,7 +533,7 @@ export default function GamificationPortal({
                       <span>Require evidence proof file to complete this challenge</span>
                     </label>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                     <button type="button" className="btn btn-secondary" onClick={() => setShowChallengeForm(false)}>Cancel</button>
                     <button type="submit" className="btn btn-env" disabled={submitting}>💾 Publish Challenge</button>
                   </div>

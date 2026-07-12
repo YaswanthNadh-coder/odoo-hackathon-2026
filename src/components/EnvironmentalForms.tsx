@@ -43,12 +43,23 @@ interface ProductESGProfile {
   status: string;
 }
 
+interface SpendingRecord {
+  id: string;
+  type: string;
+  description: string;
+  amount: number;
+  quantity: number;
+  departmentCode: string;
+  date: string;
+}
+
 interface EnvironmentalFormsProps {
   departments: Department[];
   factors: EmissionFactor[];
   goals: EnvironmentalGoal[];
   products: ProductESGProfile[];
   autoEmissionCalcEnabled: boolean;
+  spendings: SpendingRecord[];
   currentUser: {
     role: string;
     departmentId: string;
@@ -61,6 +72,7 @@ export default function EnvironmentalForms({
   goals,
   products,
   autoEmissionCalcEnabled,
+  spendings,
   currentUser,
 }: EnvironmentalFormsProps) {
   const router = useRouter();
@@ -76,7 +88,12 @@ export default function EnvironmentalForms({
   const [selectedFactorId, setSelectedFactorId] = useState(factors[0]?.id || '');
   const [quantity, setQuantity] = useState('');
 
-  // Factors CRUD
+  // Spending Form states
+  const [spendingType, setSpendingType] = useState('fleet');
+  const [spendingDesc, setSpendingDesc] = useState('');
+  const [spendingAmount, setSpendingAmount] = useState('');
+  const [spendingQty, setSpendingQty] = useState('');
+  const [spendingDeptId, setSpendingDeptId] = useState(currentUser?.departmentId || departments[0]?.id || '');
   const [showFactorForm, setShowFactorForm] = useState(false);
   const [editingFactorId, setEditingFactorId] = useState<string | null>(null);
   const [factorName, setFactorName] = useState('');
@@ -140,12 +157,12 @@ export default function EnvironmentalForms({
         }),
       });
 
-      const data = await res.json();
       if (res.ok) {
         setSuccessMessage('Carbon transaction logged successfully!');
         setQuantity('');
         router.refresh();
       } else {
+        const data = await res.json();
         setErrorMessage(data.error || 'Failed to log transaction.');
       }
     } catch (err) {
@@ -184,6 +201,53 @@ export default function EnvironmentalForms({
   // ----------------------------------------------------
   // EMISSION FACTOR CRUD ACTIONS
   // ----------------------------------------------------
+
+  // Handle creating Spending Record
+  const handleCreateSpending = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!spendingDesc || !spendingAmount || !spendingQty || isNaN(parseFloat(spendingAmount)) || isNaN(parseFloat(spendingQty))) {
+      setErrorMessage('Please fill in all spending fields with valid numbers.');
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const res = await fetch('/api/environmental/spending', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: spendingType,
+          description: spendingDesc,
+          amount: parseFloat(spendingAmount),
+          quantity: parseFloat(spendingQty),
+          departmentId: spendingDeptId,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        if (data.autoTransactionCreated) {
+          setSuccessMessage(`Spending logged! Auto Emission Calculation enabled: Generated +${data.autoTransactionCreated.co2eTotal} t CO2e transaction.`);
+        } else {
+          setSuccessMessage('Spending record logged successfully (Auto-emission calculation is disabled).');
+        }
+        setSpendingDesc('');
+        setSpendingAmount('');
+        setSpendingQty('');
+        router.refresh();
+      } else {
+        setErrorMessage(data.error || 'Failed to log spending.');
+      }
+    } catch (err) {
+      setErrorMessage('Unexpected error logging spending.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSaveFactor = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!factorName || !factorUnit || !factorValue || isNaN(parseFloat(factorValue))) {
@@ -507,6 +571,22 @@ export default function EnvironmentalForms({
 
   const selectedFactor = factors.find((f) => f.id === selectedFactorId);
 
+  // --- Real-time Spending Chart Logic ---
+  const spendSummary = spendings.reduce((acc, sp) => {
+    acc[sp.type] = (acc[sp.type] || 0) + sp.amount;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const categories = [
+    { type: 'fleet', name: 'Fleet Diesel', color: '#10b981' },
+    { type: 'manufacturing', name: 'Factory Power', color: '#3b82f6' },
+    { type: 'expense', name: 'Flight Travel', color: '#f59e0b' },
+    { type: 'purchase', name: 'Office Supply', color: '#8b5cf6' },
+  ];
+
+  const totalSpendAmount = categories.reduce((sum, cat) => sum + (spendSummary[cat.type] || 0), 0);
+  const maxSpendAmount = Math.max(...categories.map((cat) => spendSummary[cat.type] || 0), 100);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Alert Banner */}
@@ -571,70 +651,170 @@ export default function EnvironmentalForms({
             )}
           </div>
 
-          {/* Manual Entry Form - Disabled if auto is active, but still visible to review */}
-          {!autoEmissionCalcEnabled && (
-            <div className="glass-card">
-              <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem' }}>Log Carbon Footprint Receipts</h3>
-              <form onSubmit={handleSubmitCarbon} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div className="grid-cols-2" style={{ gap: '1rem' }}>
-                  <div className="form-group">
-                    <label className="form-label">Department Scope</label>
-                    <select
-                      className="form-select"
-                      value={selectedDeptId}
-                      onChange={(e) => setSelectedDeptId(e.target.value)}
-                    >
-                      {departments.map((dept) => (
-                        <option key={dept.id} value={dept.id}>
-                          {dept.name} ({dept.code})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+          {/* 2-Column Grid: Left: Logging Forms, Right: Spend Chart */}
+          <div className="grid-cols-2" style={{ gap: '1.5rem' }}>
+            
+            {/* Left Column: Logging Form */}
+            <div>
+              {autoEmissionCalcEnabled ? (
+                /* Log Operations Spending Form (which generates carbon transactions) */
+                <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>💸 Log Operations Spending</h3>
+                  <form onSubmit={handleCreateSpending} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div className="form-group">
+                      <label className="form-label">Operational Category</label>
+                      <select className="form-select" value={spendingType} onChange={(e) => setSpendingType(e.target.value)}>
+                        <option value="fleet">Fleet Diesel (Liters)</option>
+                        <option value="manufacturing">Factory Electricity Grid (kWh)</option>
+                        <option value="expense">Executive Flight Travel (Pax-km)</option>
+                        <option value="purchase">Office Materials Procurement (USD)</option>
+                      </select>
+                    </div>
 
-                  <div className="form-group">
-                    <label className="form-label">Emission Category Factor</label>
-                    <select
-                      className="form-select"
-                      value={selectedFactorId}
-                      onChange={(e) => setSelectedFactorId(e.target.value)}
-                    >
-                      {factors.map((f) => (
-                        <option key={f.id} value={f.id}>
-                          {f.name} (per {f.unit})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                    <div className="form-group">
+                      <label className="form-label">Description / Invoice</label>
+                      <input type="text" className="form-input" placeholder="e.g. Q3 Fleet Fuel Ingest" value={spendingDesc} onChange={(e) => setSpendingDesc(e.target.value)} required />
+                    </div>
 
-                <div className="form-group">
-                  <label className="form-label">Quantity Consumed ({selectedFactor?.unit || 'Units'})</label>
-                  <div style={{ display: 'flex', gap: '1rem' }}>
-                    <input
-                      type="number"
-                      className="form-input"
-                      style={{ flexGrow: 1 }}
-                      placeholder="e.g. 1500"
-                      value={quantity}
-                      onChange={(e) => setQuantity(e.target.value)}
-                      min="0.001"
-                      step="any"
-                      required
-                    />
-                    <button type="submit" className="btn btn-env" disabled={isLoading}>
-                      {isLoading ? 'Saving...' : '💾 Log Carbon Data'}
-                    </button>
-                  </div>
+                    <div className="grid-cols-2" style={{ gap: '0.75rem' }}>
+                      <div className="form-group">
+                        <label className="form-label">Spending (USD)</label>
+                        <input type="number" className="form-input" placeholder="$ amount" value={spendingAmount} onChange={(e) => setSpendingAmount(e.target.value)} required min="1" />
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">Usage Quantity</label>
+                        <input type="number" className="form-input" placeholder="Liters, kWh, etc" value={spendingQty} onChange={(e) => setSpendingQty(e.target.value)} required min="1" />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                      <button type="submit" className="btn btn-env" style={{ width: '100%' }} disabled={isLoading}>
+                        {isLoading ? 'Saving...' : '💾 Log Operations Spending'}
+                      </button>
+                    </div>
+                  </form>
                 </div>
-                {selectedFactor && (
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    Factor calculation: 1 {selectedFactor.unit} = {selectedFactor.co2eValue} t CO2e
-                  </p>
-                )}
-              </form>
+              ) : (
+                /* Manual Carbon Footprint Entry Form */
+                <div className="glass-card">
+                  <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem' }}>Log Carbon Footprint Receipts</h3>
+                  <form onSubmit={handleSubmitCarbon} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <div className="grid-cols-2" style={{ gap: '1rem' }}>
+                      <div className="form-group">
+                        <label className="form-label">Department Scope</label>
+                        <select
+                          className="form-select"
+                          value={selectedDeptId}
+                          onChange={(e) => setSelectedDeptId(e.target.value)}
+                        >
+                          {departments.map((dept) => (
+                            <option key={dept.id} value={dept.id}>
+                              {dept.name} ({dept.code})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label">Emission Category Factor</label>
+                        <select
+                          className="form-select"
+                          value={selectedFactorId}
+                          onChange={(e) => setSelectedFactorId(e.target.value)}
+                        >
+                          {factors.map((f) => (
+                            <option key={f.id} value={f.id}>
+                              {f.name} (per {f.unit})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Quantity Consumed ({selectedFactor?.unit || 'Units'})</label>
+                      <div style={{ display: 'flex', gap: '1rem' }}>
+                        <input
+                          type="number"
+                          className="form-input"
+                          style={{ flexGrow: 1 }}
+                          placeholder="e.g. 1500"
+                          value={quantity}
+                          onChange={(e) => setQuantity(e.target.value)}
+                          min="0.001"
+                          step="any"
+                          required
+                        />
+                        <button type="submit" className="btn btn-env" disabled={isLoading}>
+                          {isLoading ? 'Saving...' : '💾 Log Carbon Data'}
+                        </button>
+                      </div>
+                    </div>
+                    {selectedFactor && (
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        Factor calculation: 1 {selectedFactor.unit} = {selectedFactor.co2eValue} t CO2e
+                      </p>
+                    )}
+                  </form>
+                </div>
+              )}
             </div>
-          )}
+
+            {/* Right Column: Real-Time SVG Spending Allocation Chart */}
+            <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              <div className="flex-between">
+                <h3 style={{ fontSize: '1.1rem' }}>💰 Spend Analysis allocation</h3>
+                <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--accent-overall)' }}>
+                  Total: ${totalSpendAmount.toLocaleString()}
+                </span>
+              </div>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginBottom: '1.5rem' }}>
+                Real-time financial layout across departments and asset logs.
+              </p>
+
+              {/* SVG Bar Chart */}
+              <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="100%" height="160" viewBox="0 0 320 160" style={{ overflow: 'visible' }}>
+                  {/* Grid Lines */}
+                  <line x1="40" y1="20" x2="300" y2="20" stroke="rgba(255,255,255,0.05)" strokeDasharray="3" />
+                  <line x1="40" y1="70" x2="300" y2="70" stroke="rgba(255,255,255,0.05)" strokeDasharray="3" />
+                  <line x1="40" y1="120" x2="300" y2="120" stroke="rgba(255,255,255,0.08)" />
+
+                  {/* Rendering Bar Columns */}
+                  {categories.map((cat, idx) => {
+                    const amount = spendSummary[cat.type] || 0;
+                    const barHeight = (amount / maxSpendAmount) * 100;
+                    const colX = 50 + idx * 65;
+                    const barY = 120 - barHeight;
+
+                    return (
+                      <g key={cat.type}>
+                        {/* Shadow/Glow under bar */}
+                        <rect x={colX} y={barY} width="35" height={barHeight} fill={cat.color} opacity="0.15" rx="3" />
+                        
+                        {/* Active Bar */}
+                        <rect x={colX} y={barY} width="35" height={barHeight} fill={cat.color} rx="3" />
+
+                        {/* Numeric Value */}
+                        <text x={colX + 17.5} y={barY - 6} textAnchor="middle" fill="var(--text-primary)" fontSize="9" fontWeight="700">
+                          ${amount >= 1000 ? `${(amount / 1000).toFixed(1)}k` : amount.toFixed(0)}
+                        </text>
+
+                        {/* X Axis Label */}
+                        <text x={colX + 17.5} y="135" textAnchor="middle" fill="var(--text-muted)" fontSize="8" fontWeight="600">
+                          {cat.name.split(' ')[0]}
+                        </text>
+                      </g>
+                    );
+                  })}
+
+                  {/* Y Axis line */}
+                  <line x1="40" y1="10" x2="40" y2="120" stroke="rgba(255,255,255,0.08)" />
+                </svg>
+              </div>
+            </div>
+
+          </div>
 
           {/* Configure Emission Factors Panel (CRUD for Factors) */}
           {isOfficerOrManager && (
@@ -967,6 +1147,81 @@ export default function EnvironmentalForms({
           </div>
         </div>
       )}
+
+      {/* Row 2: Emission Factors Configuration */}
+      <div className="glass-card">
+        <div className="flex-between" style={{ marginBottom: '1rem' }}>
+          <div>
+            <h3 style={{ fontSize: '1.25rem' }}>🔧 Emission Factors Settings</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '0.15rem' }}>
+              Set global CO2e coefficients to determine metric tonnes generated.
+            </p>
+          </div>
+          {isOfficerOrManager && (
+            <button className="btn btn-secondary" onClick={() => (showFactorForm ? resetFactorForm() : setShowFactorForm(true))}>
+              {showFactorForm ? '✕ Close Form' : '➕ Add Factor'}
+            </button>
+          )}
+        </div>
+
+        {showFactorForm && isOfficerOrManager && (
+          <div className="glass-card mb-6" style={{ background: 'rgba(255,255,255,0.01)', border: '1px dashed var(--border-glow)' }}>
+            <h4 style={{ fontSize: '1rem', marginBottom: '1rem', fontWeight: 600 }}>
+              {editingFactorId ? '✏️ Edit Emission Factor' : '➕ Create New Emission Factor'}
+            </h4>
+            <form onSubmit={handleSaveFactor} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="grid-cols-3" style={{ gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Factor Name</label>
+                  <input type="text" className="form-input" placeholder="e.g. Natural Gas" value={factorName} onChange={(e) => setFactorName(e.target.value)} required />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Calculation Unit</label>
+                  <input type="text" className="form-input" placeholder="e.g. Therms" value={factorUnit} onChange={(e) => setFactorUnit(e.target.value)} required />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">CO2e Value (tonnes per unit)</label>
+                  <input type="number" step="0.00001" className="form-input" placeholder="e.g. 0.0053" value={factorValue} onChange={(e) => setFactorValue(e.target.value)} required />
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={resetFactorForm}>Cancel</button>
+                <button type="submit" className="btn btn-env" disabled={isLoading}>💾 Save Factor</button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        <div className="table-container">
+          <table className="custom-table">
+            <thead>
+              <tr>
+                <th>Emission Factor Name</th>
+                <th>Measurement Unit</th>
+                <th>CO2e Coefficient Value</th>
+                {isOfficerOrManager && <th>Actions</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {factors.map((f) => (
+                <tr key={f.id}>
+                  <td style={{ fontWeight: 600 }}>{f.name}</td>
+                  <td><span className="pill pill-info">{f.unit}</span></td>
+                  <td style={{ fontWeight: 700, color: 'var(--accent-overall)' }}>{f.co2eValue} t CO2e</td>
+                  {isOfficerOrManager && (
+                    <td>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => handleEditFactorClick(f)}>✏️ Edit</button>
+                        <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', borderLeft: '3px solid #ef4444' }} onClick={() => handleDeleteFactor(f.id)}>🗑️ Delete</button>
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

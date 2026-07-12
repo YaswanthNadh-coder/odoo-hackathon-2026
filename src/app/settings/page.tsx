@@ -45,6 +45,10 @@ export default async function SettingsPage() {
     envWeight: config.envWeight,
     socialWeight: config.socialWeight,
     govWeight: config.govWeight,
+    notifyCompliance: config.notifyCompliance,
+    notifyApproval: config.notifyApproval,
+    notifyPolicyReminder: config.notifyPolicyReminder,
+    notifyBadgeUnlock: config.notifyBadgeUnlock,
   };
 
   const serializedDepartments = departments.map((dept) => ({

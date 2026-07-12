@@ -1,4 +1,5 @@
 import { prisma } from '../src/lib/db';
+import { hashPassword } from '../src/lib/auth';
 
 async function main() {
   console.log('Seeding database...');
@@ -26,6 +27,7 @@ async function main() {
   await prisma.reward.deleteMany();
   await prisma.trainingCourse.deleteMany();
   await prisma.productESGProfile.deleteMany();
+  await prisma.spendingRecord.deleteMany();
 
   // 2. Global configuration
   await prisma.appConfig.create({
@@ -38,6 +40,10 @@ async function main() {
       envWeight: 0.4,
       socialWeight: 0.3,
       govWeight: 0.3,
+      notifyCompliance: true,
+      notifyApproval: true,
+      notifyPolicyReminder: true,
+      notifyBadgeUnlock: true,
     },
   });
 
@@ -59,19 +65,19 @@ async function main() {
 
   // 4. Employees (with demographic data)
   const empJohn = await prisma.employee.create({
-    data: { name: 'John Doe', role: 'employee', departmentId: deptLogistics.id, xp: 120, points: 50, gender: 'Male', ethnicity: 'Caucasian' },
+    data: { name: 'John Doe', email: 'john@ecosphere.com', passwordHash: hashPassword('john123'), role: 'employee', departmentId: deptLogistics.id, xp: 120, points: 50, gender: 'Male', ethnicity: 'Caucasian' },
   });
   const empJane = await prisma.employee.create({
-    data: { name: 'Jane Smith', role: 'employee', departmentId: deptMfg.id, xp: 80, points: 30, gender: 'Female', ethnicity: 'Asian' },
+    data: { name: 'Jane Smith', email: 'jane@ecosphere.com', passwordHash: hashPassword('jane123'), role: 'employee', departmentId: deptMfg.id, xp: 80, points: 30, gender: 'Female', ethnicity: 'Asian' },
   });
   const empElena = await prisma.employee.create({
-    data: { name: 'Elena Rostova', role: 'manager', departmentId: deptCorporate.id, xp: 250, points: 150, gender: 'Female', ethnicity: 'Eastern European' },
+    data: { name: 'Elena Rostova', email: 'elena@ecosphere.com', passwordHash: hashPassword('elena123'), role: 'manager', departmentId: deptCorporate.id, xp: 250, points: 150, gender: 'Female', ethnicity: 'Eastern European' },
   });
   const empAlice = await prisma.employee.create({
-    data: { name: 'Alice Johnson', role: 'employee', departmentId: deptRD.id, xp: 350, points: 200, gender: 'Female', ethnicity: 'African American' },
+    data: { name: 'Alice Johnson', email: 'alice@ecosphere.com', passwordHash: hashPassword('alice123'), role: 'employee', departmentId: deptRD.id, xp: 350, points: 200, gender: 'Female', ethnicity: 'African American' },
   });
   const empMarcus = await prisma.employee.create({
-    data: { name: 'Marcus Vance', role: 'officer', departmentId: deptCorporate.id, xp: 0, points: 0, gender: 'Male', ethnicity: 'African American' },
+    data: { name: 'Marcus Vance', email: 'marcus@ecosphere.com', passwordHash: hashPassword('marcus123'), role: 'officer', departmentId: deptCorporate.id, xp: 0, points: 0, gender: 'Male', ethnicity: 'African American' },
   });
 
   // 5. Emission Factors
@@ -255,6 +261,9 @@ async function main() {
       { name: 'Organic Cotton EcoSphere Tee', description: '100% certified organic cotton t-shirt with non-toxic ink prints.', pointsRequired: 150, stock: 10, status: 'active' },
       { name: 'Solar Portable Phone Charger', description: 'Charge your phone anywhere using high-efficiency integrated solar cells.', pointsRequired: 300, stock: 4, status: 'active' },
       { name: 'Zero-Waste Metal Straw Set', description: 'Four stainless steel straws with a cleaning brush and a hemp carry pouch.', pointsRequired: 40, stock: 0, status: 'active' },
+      { name: 'Eco Coffee Mug', description: 'Double-walled reusable bamboo travel mug.', pointsRequired: 100, stock: 15 },
+      { name: 'Sustainable Apparel Hoodie', description: 'Certified organic cotton hoodie.', pointsRequired: 300, stock: 5 },
+      { name: 'Solar Charger Powerbank', description: '20,000mAh solar-powered backup battery.', pointsRequired: 500, stock: 2 },
     ],
   });
 
@@ -284,6 +293,16 @@ async function main() {
       { courseId: courseWaste.id, employeeId: empJane.id, completedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000) },
       { courseId: courseEsg.id, employeeId: empAlice.id, completedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000) },
       { courseId: courseEnergy.id, employeeId: empAlice.id, completedAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000) },
+    ],
+  });
+
+  // 19. Operational Spending Records
+  await prisma.spendingRecord.createMany({
+    data: [
+      { type: 'fleet', description: 'Logistics Diesel Fuel Fleet refill', amount: 650.0, quantity: 450.0, departmentId: deptLogistics.id },
+      { type: 'manufacturing', description: 'Monthly Factory Power Bill Grid utilities', amount: 2200.0, quantity: 18000.0, departmentId: deptMfg.id },
+      { type: 'expense', description: 'R&D Executive Flight Travel mileage', amount: 950.0, quantity: 3000.0, departmentId: deptRD.id },
+      { type: 'purchase', description: 'Eco-friendly office supplies procurement', amount: 1500.0, quantity: 1500.0, departmentId: deptCorporate.id },
     ],
   });
 

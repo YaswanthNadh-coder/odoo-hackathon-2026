@@ -48,6 +48,10 @@ export async function POST(req: NextRequest) {
         envWeight: body.envWeight !== undefined ? parseFloat(body.envWeight) : undefined,
         socialWeight: body.socialWeight !== undefined ? parseFloat(body.socialWeight) : undefined,
         govWeight: body.govWeight !== undefined ? parseFloat(body.govWeight) : undefined,
+        notifyCompliance: body.notifyCompliance !== undefined ? body.notifyCompliance : undefined,
+        notifyApproval: body.notifyApproval !== undefined ? body.notifyApproval : undefined,
+        notifyPolicyReminder: body.notifyPolicyReminder !== undefined ? body.notifyPolicyReminder : undefined,
+        notifyBadgeUnlock: body.notifyBadgeUnlock !== undefined ? body.notifyBadgeUnlock : undefined,
       },
       create: {
         id: 'global',
@@ -58,6 +62,10 @@ export async function POST(req: NextRequest) {
         envWeight: body.envWeight !== undefined ? parseFloat(body.envWeight) : 0.4,
         socialWeight: body.socialWeight !== undefined ? parseFloat(body.socialWeight) : 0.3,
         govWeight: body.govWeight !== undefined ? parseFloat(body.govWeight) : 0.3,
+        notifyCompliance: body.notifyCompliance !== undefined ? body.notifyCompliance : true,
+        notifyApproval: body.notifyApproval !== undefined ? body.notifyApproval : true,
+        notifyPolicyReminder: body.notifyPolicyReminder !== undefined ? body.notifyPolicyReminder : true,
+        notifyBadgeUnlock: body.notifyBadgeUnlock !== undefined ? body.notifyBadgeUnlock : true,
       },
     });
 

@@ -17,7 +17,7 @@ export default async function GamificationPage() {
     include: {
       employees: session ? {
         where: { employeeId: session.employeeId },
-      } : false,
+      } : undefined,
     },
   });
 
@@ -26,6 +26,11 @@ export default async function GamificationPage() {
     include: { department: true },
     orderBy: { xp: 'desc' },
     take: 10,
+  });
+
+  // Fetch all rewards
+  const rewards = await prisma.reward.findMany({
+    orderBy: { pointsRequired: 'asc' },
   });
 
   // Fetch active employee challenge participations
@@ -52,10 +57,6 @@ export default async function GamificationPage() {
     });
   }
 
-  // Fetch rewards catalog
-  const rewards = await prisma.reward.findMany({
-    orderBy: { pointsRequired: 'asc' },
-  });
 
   // Format data for client component serializability
   const serializedChallenges = challenges.map((ch) => ({

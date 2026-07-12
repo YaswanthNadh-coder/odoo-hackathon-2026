@@ -12,7 +12,7 @@ export default async function GovernancePage() {
     include: {
       acknowledgements: session ? {
         where: { employeeId: session.employeeId },
-      } : false,
+      } : undefined,
     },
   });
 

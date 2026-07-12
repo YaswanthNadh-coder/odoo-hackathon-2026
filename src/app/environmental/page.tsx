@@ -42,6 +42,12 @@ export default async function EnvironmentalPage() {
     orderBy: { name: 'asc' },
   });
 
+  // Fetch operational spending records
+  const spendings = await prisma.spendingRecord.findMany({
+    include: { department: true },
+    orderBy: { date: 'desc' },
+  });
+
   const serializedTransactions = transactions.map((tx) => ({
     id: tx.id,
     date: tx.date.toISOString(),
@@ -84,6 +90,16 @@ export default async function EnvironmentalPage() {
     status: p.status,
   }));
 
+  const serializedSpendings = spendings.map((sp) => ({
+    id: sp.id,
+    type: sp.type,
+    description: sp.description,
+    amount: sp.amount,
+    quantity: sp.quantity,
+    departmentCode: sp.department.code,
+    date: sp.date.toISOString(),
+  }));
+
   const isOfficerOrManager = session?.role === 'officer' || session?.role === 'manager';
 
   return (
@@ -106,6 +122,7 @@ export default async function EnvironmentalPage() {
             goals={serializedGoals}
             products={serializedProducts}
             autoEmissionCalcEnabled={autoEmissionCalcEnabled}
+            spendings={serializedSpendings}
             currentUser={session}
           />
 

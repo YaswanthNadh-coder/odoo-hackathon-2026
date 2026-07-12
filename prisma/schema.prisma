@@ -21,11 +21,14 @@ model Department {
   complianceIssues   ComplianceIssue[]
   environmentalGoals EnvironmentalGoal[]
   audits             Audit[]
+  spendingRecords    SpendingRecord[]
 }
 
 model Employee {
   id                  String                  @id @default(cuid())
   name                String
+  email               String                  @unique
+  passwordHash        String
   role                String                  @default("employee") // "employee" | "manager" | "officer"
   departmentId        String
   department          Department              @relation(fields: [departmentId], references: [id])
@@ -170,6 +173,12 @@ model AppConfig {
   envWeight            Float   @default(0.4)
   socialWeight         Float   @default(0.3)
   govWeight            Float   @default(0.3)
+  
+  // Notification system switches
+  notifyCompliance     Boolean @default(true)
+  notifyApproval       Boolean @default(true)
+  notifyPolicyReminder Boolean @default(true)
+  notifyBadgeUnlock    Boolean @default(true)
 }
 
 model ProductESGProfile {
@@ -217,7 +226,7 @@ model Reward {
   description    String?
   pointsRequired Int
   stock          Int                @default(0)
-  status         String             @default("active")
+  status         String             @default("active") // active | out_of_stock
   redemptions    RewardRedemption[]
   createdAt      DateTime           @default(now())
 }
@@ -247,4 +256,15 @@ model TrainingCompletion {
   employeeId  String
   employee    Employee       @relation(fields: [employeeId], references: [id])
   completedAt DateTime       @default(now())
+}
+
+model SpendingRecord {
+  id           String     @id @default(cuid())
+  type         String     // "purchase" | "manufacturing" | "expense" | "fleet"
+  description  String
+  amount       Float      // spending in USD
+  quantity     Float      // physical quantity
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+  date         DateTime   @default(now())
 }
