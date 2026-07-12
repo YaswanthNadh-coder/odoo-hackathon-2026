@@ -143,3 +143,31 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function PUT(req: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!session || (session.role !== 'officer' && session.role !== 'manager')) {
+      return NextResponse.json({ error: 'Only Managers and Officers can update CSR activities.' }, { status: 403 });
+    }
+
+    const { id, title, description, date } = await req.json();
+
+    if (!id || !title) {
+      return NextResponse.json({ error: 'Missing required fields (id, title)' }, { status: 400 });
+    }
+
+    const updated = await prisma.cSRActivity.update({
+      where: { id },
+      data: {
+        title,
+        description,
+        date: date ? new Date(date) : undefined,
+      },
+    });
+
+    return NextResponse.json(updated);
+  } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
