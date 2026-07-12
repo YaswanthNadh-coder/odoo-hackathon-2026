@@ -32,6 +32,11 @@ export default async function SettingsPage() {
     orderBy: { name: 'asc' },
   });
 
+  // Fetch categories
+  const categories = await prisma.category.findMany({
+    orderBy: { name: 'asc' },
+  });
+
   const serializedConfig = {
     autoEmissionCalc: config.autoEmissionCalc,
     evidenceRequired: config.evidenceRequired,
@@ -49,6 +54,13 @@ export default async function SettingsPage() {
     headName: dept.headName,
     employeeCount: dept.employeeCount,
     status: dept.status,
+  }));
+
+  const serializedCategories = categories.map((cat) => ({
+    id: cat.id,
+    name: cat.name,
+    type: cat.type,
+    status: cat.status,
   }));
 
   const clientSession = session ? {
@@ -69,6 +81,7 @@ export default async function SettingsPage() {
       <SettingsPortal
         config={serializedConfig}
         departments={serializedDepartments}
+        categories={serializedCategories}
         currentUser={clientSession}
       />
     </div>

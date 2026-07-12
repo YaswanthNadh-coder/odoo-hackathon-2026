@@ -22,9 +22,17 @@ interface Department {
   status: string;
 }
 
+interface Category {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+}
+
 interface SettingsPortalProps {
   config: Config;
   departments: Department[];
+  categories: Category[];
   currentUser: {
     role: string;
   } | null;
@@ -33,12 +41,16 @@ interface SettingsPortalProps {
 export default function SettingsPortal({
   config,
   departments,
+  categories,
   currentUser,
 }: SettingsPortalProps) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+
+  // Right column active Tab: "depts" | "cats"
+  const [activeTab, setActiveTab] = useState<'depts' | 'cats'>('depts');
 
   // Config fields
   const [autoEmissionCalc, setAutoEmissionCalc] = useState(config.autoEmissionCalc);
@@ -50,12 +62,25 @@ export default function SettingsPortal({
   const [socialWeight, setSocialWeight] = useState(config.socialWeight * 100);
   const [govWeight, setGovWeight] = useState(config.govWeight * 100);
 
-  // New Department fields
+  // Modal / Form state for edit/create
+  const [editingDeptId, setEditingDeptId] = useState<string | null>(null);
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+  
+  // Department form fields
   const [showDeptForm, setShowDeptForm] = useState(false);
   const [deptName, setDeptName] = useState('');
   const [deptCode, setDeptCode] = useState('');
   const [deptHead, setDeptHead] = useState('');
   const [deptEmployeeCount, setDeptEmployeeCount] = useState(1);
+  const [deptStatus, setDeptStatus] = useState('active');
+
+  // Category form fields
+  const [showCatForm, setShowCatForm] = useState(false);
+  const [catName, setCatName] = useState('');
+  const [catType, setCatType] = useState('CSR');
+  const [catStatus, setCatStatus] = useState('active');
+
+  const isOfficerOrManager = currentUser && (currentUser.role === 'officer' || currentUser.role === 'manager');
 
   const handleUpdateConfig = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,7 +122,8 @@ export default function SettingsPortal({
     }
   };
 
-  const handleAddDepartment = async (e: React.FormEvent) => {
+  // Department CRUD Actions
+  const handleSaveDept = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!deptName || !deptCode) {
       setErrorMessage('Please provide department name and code.');
@@ -108,31 +134,173 @@ export default function SettingsPortal({
     setErrorMessage('');
     setSuccessMessage('');
 
+    const url = '/api/departments';
+    const method = editingDeptId ? 'PUT' : 'POST';
+    const body = {
+      id: editingDeptId,
+      name: deptName,
+      code: deptCode,
+      headName: deptHead,
+      employeeCount: deptEmployeeCount,
+      status: deptStatus,
+    };
+
     try {
-      const res = await fetch('/api/governance', { // we reuse the governance endpoint for admin inserts
-        method: 'POST',
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'create-dept', // Wait, does the governance route handle 'create-dept'?
-          // Wait! Let's check: our governance route does NOT handle 'create-dept' yet!
-          // We can easily update /api/governance/route.ts to handle 'create-dept' or add it here.
-          // Let's check how we handle it in our endpoint or make a new api endpoint.
-          // Wait, let's update /api/governance/route.ts later, or write it directly. Let's make sure it handles it!
-          name: deptName,
-          code: deptCode,
-          headName: deptHead,
-          employeeCount: deptEmployeeCount,
-        }),
+        body: JSON.stringify(body),
       });
 
-      // Wait, is there a simple API for creating a department? Let's check or handle it in governance API route.
-      // Yes, we will add support for action 'create-dept' in `/api/governance/route.ts` to make it super clean!
-    } catch (e) {
-      setErrorMessage('Unexpected error creating department.');
+      if (res.ok) {
+        setSuccessMessage(editingDeptId ? 'Department updated successfully!' : 'New Department created!');
+        resetDeptForm();
+        router.refresh();
+      } else {
+        const data = await res.json();
+        setErrorMessage(data.error || 'Failed to save department.');
+      }
+    } catch (err) {
+      setErrorMessage('Error saving department details.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const isOfficerOrManager = currentUser && (currentUser.role === 'officer' || currentUser.role === 'manager');
+  const handleEditDeptClick = (dept: Department) => {
+    setEditingDeptId(dept.id);
+    setDeptName(dept.name);
+    setDeptCode(dept.code);
+    setDeptHead(dept.headName || '');
+    setDeptEmployeeCount(dept.employeeCount);
+    setDeptStatus(dept.status);
+    setShowDeptForm(true);
+  };
+
+  const handleDeleteDept = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this department? This will delete all carbon data and employees in this department.')) {
+      return;
+    }
+
+    setSubmitting(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const res = await fetch(`/api/departments?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        setSuccessMessage('Department deleted successfully.');
+        router.refresh();
+      } else {
+        const data = await res.json();
+        setErrorMessage(data.error || 'Failed to delete department.');
+      }
+    } catch (err) {
+      setErrorMessage('Error deleting department.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const resetDeptForm = () => {
+    setEditingDeptId(null);
+    setDeptName('');
+    setDeptCode('');
+    setDeptHead('');
+    setDeptEmployeeCount(1);
+    setDeptStatus('active');
+    setShowDeptForm(false);
+  };
+
+  // Category CRUD Actions
+  const handleSaveCat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!catName || !catType) {
+      setErrorMessage('Please provide category name and type.');
+      return;
+    }
+
+    setSubmitting(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    const url = '/api/categories';
+    const method = editingCatId ? 'PUT' : 'POST';
+    const body = {
+      id: editingCatId,
+      name: catName,
+      type: catType,
+      status: catStatus,
+    };
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (res.ok) {
+        setSuccessMessage(editingCatId ? 'Category updated successfully!' : 'New Category created!');
+        resetCatForm();
+        router.refresh();
+      } else {
+        const data = await res.json();
+        setErrorMessage(data.error || 'Failed to save category.');
+      }
+    } catch (err) {
+      setErrorMessage('Error saving category details.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEditCatClick = (cat: Category) => {
+    setEditingCatId(cat.id);
+    setCatName(cat.name);
+    setCatType(cat.type);
+    setCatStatus(cat.status);
+    setShowCatForm(true);
+  };
+
+  const handleDeleteCat = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this category? This will detach the category from CSR Activities and Challenges.')) {
+      return;
+    }
+
+    setSubmitting(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const res = await fetch(`/api/categories?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        setSuccessMessage('Category deleted successfully.');
+        router.refresh();
+      } else {
+        const data = await res.json();
+        setErrorMessage(data.error || 'Failed to delete category.');
+      }
+    } catch (err) {
+      setErrorMessage('Error deleting category.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const resetCatForm = () => {
+    setEditingCatId(null);
+    setCatName('');
+    setCatType('CSR');
+    setCatStatus('active');
+    setShowCatForm(false);
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -149,7 +317,7 @@ export default function SettingsPortal({
       )}
 
       <div className="grid-cols-3" style={{ alignItems: 'flex-start' }}>
-        {/* Configurations Forms (Toggles) */}
+        {/* Left Side: Configurations Forms (Toggles) */}
         <div className="glass-card" style={{ gridColumn: 'span 2' }}>
           <h3 style={{ fontSize: '1.25rem', marginBottom: '1.25rem' }}>EcoSphere Settings & Business Rules</h3>
           
@@ -295,23 +463,149 @@ export default function SettingsPortal({
           </form>
         </div>
 
-        {/* Departments List Display */}
+        {/* Right Side: Tab Switcher (Departments vs Categories) */}
         <div className="glass-card" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <h3 style={{ fontSize: '1.1rem' }}>Departments Management</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {departments.map((dept) => (
-              <div key={dept.id} style={{ padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glow)', borderRadius: 'var(--radius-md)' }}>
-                <div className="flex-between">
-                  <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{dept.name}</span>
-                  <span className="pill pill-success" style={{ fontSize: '0.55rem' }}>{dept.code}</span>
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Head: {dept.headName || 'N/A'}</span>
-                  <span>Employees: {dept.employeeCount}</span>
-                </div>
-              </div>
-            ))}
+          <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid var(--border-glow)', paddingBottom: '0.5rem' }}>
+            <button 
+              className="btn" 
+              style={{ flexGrow: 1, padding: '0.4rem', fontSize: '0.85rem', background: activeTab === 'depts' ? 'rgba(255,255,255,0.06)' : 'transparent' }}
+              onClick={() => setActiveTab('depts')}
+            >
+              Departments
+            </button>
+            <button 
+              className="btn" 
+              style={{ flexGrow: 1, padding: '0.4rem', fontSize: '0.85rem', background: activeTab === 'cats' ? 'rgba(255,255,255,0.06)' : 'transparent' }}
+              onClick={() => setActiveTab('cats')}
+            >
+              Categories
+            </button>
           </div>
+
+          {/* DEPARTMENTS TAB VIEW */}
+          {activeTab === 'depts' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div className="flex-between">
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Business Units</span>
+                {isOfficerOrManager && !showDeptForm && (
+                  <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => setShowDeptForm(true)}>
+                    ➕ New
+                  </button>
+                )}
+              </div>
+
+              {/* Department Form (Create or Edit) */}
+              {showDeptForm && isOfficerOrManager && (
+                <form onSubmit={handleSaveDept} style={{ background: 'rgba(255,255,255,0.01)', border: '1px dashed var(--border-glow)', padding: '0.75rem', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  <h4 style={{ fontSize: '0.85rem' }}>{editingDeptId ? '✏️ Edit Department' : '➕ Create Department'}</h4>
+                  <input type="text" className="form-input" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} placeholder="Name (e.g. Sales)" value={deptName} onChange={(e) => setDeptName(e.target.value)} required />
+                  <input type="text" className="form-input" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} placeholder="Code (e.g. SLS)" value={deptCode} onChange={(e) => setDeptCode(e.target.value)} required />
+                  <input type="text" className="form-input" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} placeholder="Head Name" value={deptHead} onChange={(e) => setDeptHead(e.target.value)} />
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input type="number" className="form-input" style={{ flexGrow: 1, padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} placeholder="Staff Count" value={deptEmployeeCount} onChange={(e) => setDeptEmployeeCount(parseInt(e.target.value) || 0)} min="0" />
+                    <select className="form-select" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} value={deptStatus} onChange={(e) => setDeptStatus(e.target.value)}>
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                    <button type="button" className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={resetDeptForm}>Cancel</button>
+                    <button type="submit" className="btn btn-env" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} disabled={submitting}>Save</button>
+                  </div>
+                </form>
+              )}
+
+              {/* Department List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {departments.map((dept) => (
+                  <div key={dept.id} style={{ padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glow)', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ flexGrow: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{dept.name}</span>
+                        <span className="pill pill-success" style={{ fontSize: '0.55rem', padding: '0.05rem 0.35rem' }}>{dept.code}</span>
+                      </div>
+                      <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                        Head: {dept.headName || 'N/A'} | Staff: {dept.employeeCount}
+                      </div>
+                    </div>
+                    {isOfficerOrManager && (
+                      <div style={{ display: 'flex', gap: '0.4rem' }}>
+                        <button className="btn" style={{ padding: '0.25rem', background: 'transparent' }} onClick={() => handleEditDeptClick(dept)}>
+                          ✏️
+                        </button>
+                        <button className="btn" style={{ padding: '0.25rem', background: 'transparent' }} onClick={() => handleDeleteDept(dept.id)}>
+                          🗑️
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* CATEGORIES TAB VIEW */}
+          {activeTab === 'cats' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div className="flex-between">
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Classification Tags</span>
+                {isOfficerOrManager && !showCatForm && (
+                  <button className="btn btn-secondary" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }} onClick={() => setShowCatForm(true)}>
+                    ➕ New
+                  </button>
+                )}
+              </div>
+
+              {/* Category Form */}
+              {showCatForm && isOfficerOrManager && (
+                <form onSubmit={handleSaveCat} style={{ background: 'rgba(255,255,255,0.01)', border: '1px dashed var(--border-glow)', padding: '0.75rem', borderRadius: 'var(--radius-md)', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                  <h4 style={{ fontSize: '0.85rem' }}>{editingCatId ? '✏️ Edit Category' : '➕ Create Category'}</h4>
+                  <input type="text" className="form-input" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} placeholder="Category Name" value={catName} onChange={(e) => setCatName(e.target.value)} required />
+                  <select className="form-select" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} value={catType} onChange={(e) => setCatType(e.target.value)}>
+                    <option value="CSR">CSR Initiative</option>
+                    <option value="CHALLENGE">Gamified Challenge</option>
+                  </select>
+                  <select className="form-select" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} value={catStatus} onChange={(e) => setCatStatus(e.target.value)}>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                    <button type="button" className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={resetCatForm}>Cancel</button>
+                    <button type="submit" className="btn btn-env" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} disabled={submitting}>Save</button>
+                  </div>
+                </form>
+              )}
+
+              {/* Categories List */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {categories.map((cat) => (
+                  <div key={cat.id} style={{ padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glow)', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ flexGrow: 1 }}>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{cat.name}</span>
+                      <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                        Module: <span style={{ color: 'var(--accent-overall)', fontWeight: 600 }}>{cat.type}</span> | Status: {cat.status}
+                      </div>
+                    </div>
+                    {isOfficerOrManager && (
+                      <div style={{ display: 'flex', gap: '0.4rem' }}>
+                        <button className="btn" style={{ padding: '0.25rem', background: 'transparent' }} onClick={() => handleEditCatClick(cat)}>
+                          ✏️
+                        </button>
+                        <button className="btn" style={{ padding: '0.25rem', background: 'transparent' }} onClick={() => handleDeleteCat(cat.id)}>
+                          🗑️
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {categories.length === 0 && (
+                  <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                    No categories created yet.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

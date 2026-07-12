@@ -96,3 +96,43 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!session || (session.role !== 'officer' && session.role !== 'manager')) {
+      return NextResponse.json({ error: 'Only Managers and Officers can delete governance items.' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const type = searchParams.get('type');
+    const id = searchParams.get('id');
+
+    if (!id || !type) {
+      return NextResponse.json({ error: 'ID and Type (policy/issue) are required' }, { status: 400 });
+    }
+
+    if (type === 'policy') {
+      await prisma.$transaction([
+        prisma.policyAcknowledgement.deleteMany({
+          where: { policyId: id },
+        }),
+        prisma.eSGPolicy.delete({
+          where: { id },
+        }),
+      ]);
+      return NextResponse.json({ success: true });
+    }
+
+    if (type === 'issue') {
+      await prisma.complianceIssue.delete({
+        where: { id },
+      });
+      return NextResponse.json({ success: true });
+    }
+
+    return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

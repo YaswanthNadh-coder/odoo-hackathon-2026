@@ -53,8 +53,13 @@ export default function GovernancePortal({
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [showIssueForm, setShowIssueForm] = useState(false);
+  const [showPolicyForm, setShowPolicyForm] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+
+  // Policy form fields
+  const [policyTitle, setPolicyTitle] = useState('');
+  const [policyBody, setPolicyBody] = useState('');
 
   // Form Fields for reporting issue
   const [selectedDeptId, setSelectedDeptId] = useState(departments[0]?.id || '');
@@ -62,6 +67,8 @@ export default function GovernancePortal({
   const [description, setDescription] = useState('');
   const [owner, setOwner] = useState('');
   const [dueDate, setDueDate] = useState('');
+
+  const isOfficerOrManager = currentUser && (currentUser.role === 'officer' || currentUser.role === 'manager');
 
   // Handle policy acknowledgement
   const handleAcknowledge = async (policyId: string) => {
@@ -85,6 +92,73 @@ export default function GovernancePortal({
       }
     } catch (err) {
       setErrorMessage('Unexpected error during policy sign-off.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Create Policy
+  const handleCreatePolicy = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!policyTitle) {
+      setErrorMessage('Policy title is required.');
+      return;
+    }
+    setSubmitting(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const res = await fetch('/api/governance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create-policy',
+          title: policyTitle,
+          body: policyBody,
+        }),
+      });
+
+      if (res.ok) {
+        setSuccessMessage('New ESG Policy created successfully!');
+        setPolicyTitle('');
+        setPolicyBody('');
+        setShowPolicyForm(false);
+        router.refresh();
+      } else {
+        const data = await res.json();
+        setErrorMessage(data.error || 'Failed to create policy.');
+      }
+    } catch (err) {
+      setErrorMessage('Error creating policy.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Delete Policy
+  const handleDeletePolicy = async (policyId: string) => {
+    if (!confirm('Are you sure you want to delete this policy? This will also delete all acknowledgements logged under this policy.')) {
+      return;
+    }
+    setSubmitting(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const res = await fetch(`/api/governance?type=policy&id=${policyId}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        setSuccessMessage('ESG Policy deleted successfully.');
+        router.refresh();
+      } else {
+        const data = await res.json();
+        setErrorMessage(data.error || 'Failed to delete policy.');
+      }
+    } catch (err) {
+      setErrorMessage('Error deleting policy.');
     } finally {
       setSubmitting(false);
     }
@@ -164,7 +238,33 @@ export default function GovernancePortal({
     }
   };
 
-  const isOfficerOrManager = currentUser && (currentUser.role === 'officer' || currentUser.role === 'manager');
+  // Delete Compliance Issue
+  const handleDeleteIssue = async (issueId: string) => {
+    if (!confirm('Are you sure you want to delete this compliance issue from the audit logs?')) {
+      return;
+    }
+    setSubmitting(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const res = await fetch(`/api/governance?type=issue&id=${issueId}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        setSuccessMessage('Compliance issue deleted successfully.');
+        router.refresh();
+      } else {
+        const data = await res.json();
+        setErrorMessage(data.error || 'Failed to delete compliance issue.');
+      }
+    } catch (err) {
+      setErrorMessage('Error deleting compliance issue.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const now = new Date();
 
@@ -184,19 +284,55 @@ export default function GovernancePortal({
 
       {/* Row 1: ESG Policies Sign-offs */}
       <div>
-        <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>📜 ESG Corporate Policy Sign-Offs</h3>
+        <div className="flex-between mb-6">
+          <h3 style={{ fontSize: '1.25rem' }}>📜 ESG Corporate Policy Sign-Offs</h3>
+          {isOfficerOrManager && (
+            <button className="btn btn-env" onClick={() => setShowPolicyForm(!showPolicyForm)}>
+              {showPolicyForm ? '✕ Close Form' : '➕ Create ESG Policy'}
+            </button>
+          )}
+        </div>
+
+        {/* Create Policy Form */}
+        {showPolicyForm && isOfficerOrManager && (
+          <div className="glass-card mb-6" style={{ borderLeft: '4px solid var(--accent-overall)' }}>
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem' }}>Establish New Corporate ESG Policy</h3>
+            <form onSubmit={handleCreatePolicy} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="form-group">
+                <label className="form-label">Policy Title</label>
+                <input type="text" className="form-input" placeholder="e.g. Carbon Offset Investment Protocol" value={policyTitle} onChange={(e) => setPolicyTitle(e.target.value)} required />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Policy Body / Directives</label>
+                <textarea className="form-textarea" rows={4} placeholder="Detail the policies standards..." value={policyBody} onChange={(e) => setPolicyBody(e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowPolicyForm(false)}>Cancel</button>
+                <button type="submit" className="btn btn-env" disabled={submitting}>💾 Publish Policy</button>
+              </div>
+            </form>
+          </div>
+        )}
+
         <div className="grid-cols-2">
           {policies.map((policy) => {
             const isSigned = policy.acknowledgements && policy.acknowledgements.length > 0;
             return (
-              <div key={policy.id} className="glass-card" style={{ display: 'flex', flexDirection: 'column', minHeight: '180px' }}>
+              <div key={policy.id} className="glass-card" style={{ display: 'flex', flexDirection: 'column', minHeight: '200px' }}>
                 <div className="flex-between" style={{ marginBottom: '0.5rem' }}>
                   <h4 style={{ fontSize: '1.05rem', fontWeight: 700 }}>{policy.title}</h4>
-                  {isSigned ? (
-                    <span className="pill pill-success" style={{ fontSize: '0.65rem' }}>✓ Signed</span>
-                  ) : (
-                    <span className="pill pill-warning" style={{ fontSize: '0.65rem' }}>⚠ Required</span>
-                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    {isSigned ? (
+                      <span className="pill pill-success" style={{ fontSize: '0.65rem' }}>✓ Signed</span>
+                    ) : (
+                      <span className="pill pill-warning" style={{ fontSize: '0.65rem' }}>⚠ Required</span>
+                    )}
+                    {isOfficerOrManager && (
+                      <button className="btn" style={{ padding: '0.2rem', background: 'transparent' }} onClick={() => handleDeletePolicy(policy.id)}>
+                        🗑️
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', flexGrow: 1, lineHeight: '1.4' }}>
                   {policy.body}
@@ -361,18 +497,31 @@ export default function GovernancePortal({
                       </span>
                     </td>
                     <td>
-                      {issue.status === 'open' && isOfficerOrManager ? (
-                        <button
-                          className="btn btn-secondary"
-                          style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', borderLeft: '3px solid var(--accent-env)' }}
-                          onClick={() => handleResolveIssue(issue.id)}
-                          disabled={submitting}
-                        >
-                          Resolve
-                        </button>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>None</span>
-                      )}
+                      <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                        {issue.status === 'open' && isOfficerOrManager && (
+                          <button
+                            className="btn btn-secondary"
+                            style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem', borderLeft: '3px solid var(--accent-env)' }}
+                            onClick={() => handleResolveIssue(issue.id)}
+                            disabled={submitting}
+                          >
+                            Resolve
+                          </button>
+                        )}
+                        {isOfficerOrManager && (
+                          <button
+                            className="btn"
+                            style={{ padding: '0.25rem', background: 'transparent' }}
+                            onClick={() => handleDeleteIssue(issue.id)}
+                            disabled={submitting}
+                          >
+                            🗑️
+                          </button>
+                        )}
+                        {!isOfficerOrManager && issue.status === 'resolved' && (
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>None</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

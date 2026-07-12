@@ -33,7 +33,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { activityId, proofUrl } = await req.json();
+    const body = await req.json();
+    const { action } = body;
+
+    if (action === 'create-activity') {
+      if (session.role !== 'officer' && session.role !== 'manager') {
+        return NextResponse.json({ error: 'Only Managers and Officers can create activities.' }, { status: 403 });
+      }
+
+      const { title, description, categoryId, date } = body;
+      if (!title) {
+        return NextResponse.json({ error: 'Activity Title is required' }, { status: 400 });
+      }
+
+      const activity = await prisma.cSRActivity.create({
+        data: {
+          title,
+          description: description || '',
+          categoryId: categoryId || null,
+          date: date ? new Date(date) : new Date(),
+        },
+      });
+
+      return NextResponse.json(activity);
+    }
+
+    // Default: Register / Submit participation
+    const { activityId, proofUrl } = body;
 
     if (!activityId) {
       return NextResponse.json({ error: 'Activity ID is required' }, { status: 400 });
@@ -63,6 +89,36 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(participation);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!session || (session.role !== 'officer' && session.role !== 'manager')) {
+      return NextResponse.json({ error: 'Only Managers and Officers can delete CSR activities.' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Activity ID is required' }, { status: 400 });
+    }
+
+    // Clean up dependent participations first
+    await prisma.$transaction([
+      prisma.employeeParticipation.deleteMany({
+        where: { activityId: id },
+      }),
+      prisma.cSRActivity.delete({
+        where: { id },
+      }),
+    ]);
+
+    return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

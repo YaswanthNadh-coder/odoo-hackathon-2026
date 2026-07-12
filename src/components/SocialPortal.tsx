@@ -57,6 +57,14 @@ export default function SocialPortal({
   const [successMessage, setSuccessMessage] = useState('');
   const [newBadges, setNewBadges] = useState<any[]>([]);
 
+  // Activity creation fields
+  const [showActivityForm, setShowActivityForm] = useState(false);
+  const [activityTitle, setActivityTitle] = useState('');
+  const [activityDesc, setActivityDesc] = useState('');
+  const [activityDate, setActivityDate] = useState('');
+
+  const isOfficerOrManager = currentUser && (currentUser.role === 'officer' || currentUser.role === 'manager');
+
   // Register / Join Activity (creates a pending participation)
   const handleJoinActivity = async (activityId: string) => {
     setActiveActivityId(activityId);
@@ -104,6 +112,75 @@ export default function SocialPortal({
       }
     } catch (err) {
       setErrorMessage('Unexpected error submitting registration.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Create CSR Activity
+  const handleCreateActivity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activityTitle) {
+      setErrorMessage('Activity title is required.');
+      return;
+    }
+    setSubmitting(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const res = await fetch('/api/social', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create-activity',
+          title: activityTitle,
+          description: activityDesc,
+          date: activityDate ? new Date(activityDate) : new Date(),
+        }),
+      });
+
+      if (res.ok) {
+        setSuccessMessage('CSR Activity created successfully!');
+        setActivityTitle('');
+        setActivityDesc('');
+        setActivityDate('');
+        setShowActivityForm(false);
+        router.refresh();
+      } else {
+        const data = await res.json();
+        setErrorMessage(data.error || 'Failed to create activity.');
+      }
+    } catch (err) {
+      setErrorMessage('Error creating activity.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Delete CSR Activity
+  const handleDeleteActivity = async (activityId: string) => {
+    if (!confirm('Are you sure you want to delete this CSR activity? This will also delete all employees\' participations logged under this activity.')) {
+      return;
+    }
+    setSubmitting(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const res = await fetch(`/api/social?id=${activityId}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        setSuccessMessage('CSR Activity deleted successfully.');
+        router.refresh();
+      } else {
+        const data = await res.json();
+        setErrorMessage(data.error || 'Failed to delete activity.');
+      }
+    } catch (err) {
+      setErrorMessage('Error deleting CSR activity.');
     } finally {
       setSubmitting(false);
     }
@@ -263,9 +340,44 @@ export default function SocialPortal({
         </div>
       )}
 
-      {/* 3. CSR Activities Grid */}
+      {/* 3. CSR Activities Grid & Creator Form */}
       <div>
-        <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>CSR Engagement Initiatives</h3>
+        <div className="flex-between mb-6">
+          <h3 style={{ fontSize: '1.25rem' }}>CSR Engagement Initiatives</h3>
+          {isOfficerOrManager && (
+            <button className="btn btn-env" onClick={() => setShowActivityForm(!showActivityForm)}>
+              {showActivityForm ? '✕ Close Form' : '➕ Create CSR Activity'}
+            </button>
+          )}
+        </div>
+
+        {/* Create CSR Activity Form */}
+        {showActivityForm && isOfficerOrManager && (
+          <div className="glass-card mb-6" style={{ borderLeft: '4px solid var(--accent-env)' }}>
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem' }}>Announce CSR Activity Drive</h3>
+            <form onSubmit={handleCreateActivity} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="grid-cols-2" style={{ gap: '1rem' }}>
+                <div className="form-group">
+                  <label className="form-label">Activity Title</label>
+                  <input type="text" className="form-input" placeholder="e.g. River Bank Restoration" value={activityTitle} onChange={(e) => setActivityTitle(e.target.value)} required />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Event Date</label>
+                  <input type="date" className="form-input" value={activityDate} onChange={(e) => setActivityDate(e.target.value)} />
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Description / Instructions</label>
+                <textarea className="form-textarea" rows={3} placeholder="Provide volunteering instructions..." value={activityDesc} onChange={(e) => setActivityDesc(e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowActivityForm(false)}>Cancel</button>
+                <button type="submit" className="btn btn-env" disabled={submitting}>💾 Announce Event</button>
+              </div>
+            </form>
+          </div>
+        )}
+
         <div className="grid-cols-3">
           {activities.map((act) => {
             // Check if current user is registered
@@ -277,12 +389,19 @@ export default function SocialPortal({
             );
 
             return (
-              <div key={act.id} className="glass-card" style={{ display: 'flex', flexDirection: 'column', height: '200px' }}>
-                <h4 style={{ fontSize: '1.05rem', fontWeight: 700 }}>{act.title}</h4>
-                <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', marginTop: '0.5rem', flexGrow: 1 }}>
+              <div key={act.id} className="glass-card" style={{ display: 'flex', flexDirection: 'column', height: '220px' }}>
+                <div className="flex-between">
+                  <h4 style={{ fontSize: '1.05rem', fontWeight: 700 }}>{act.title}</h4>
+                  {isOfficerOrManager && (
+                    <button className="btn" style={{ padding: '0.2rem', background: 'transparent', fontSize: '0.95rem' }} onClick={() => handleDeleteActivity(act.id)}>
+                      🗑️
+                    </button>
+                  )}
+                </div>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', marginTop: '0.5rem', flexGrow: 1, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical' }}>
                   {act.description || 'No description available.'}
                 </p>
-                <div className="flex-between" style={{ marginTop: 'auto' }}>
+                <div className="flex-between" style={{ marginTop: 'auto', paddingTop: '0.5rem' }}>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     📅 {new Date(act.date).toLocaleDateString()}
                   </span>

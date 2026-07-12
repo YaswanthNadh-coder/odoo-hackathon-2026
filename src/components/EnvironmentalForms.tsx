@@ -40,6 +40,15 @@ export default function EnvironmentalForms({
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
+  // Emission Factors CRUD fields
+  const [showFactorForm, setShowFactorForm] = useState(false);
+  const [editingFactorId, setEditingFactorId] = useState<string | null>(null);
+  const [factorName, setFactorName] = useState('');
+  const [factorUnit, setFactorUnit] = useState('');
+  const [factorValue, setFactorValue] = useState('');
+
+  const isOfficerOrManager = currentUser && (currentUser.role === 'officer' || currentUser.role === 'manager');
+
   // Handle manual transaction submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,6 +112,93 @@ export default function EnvironmentalForms({
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Save Emission Factor
+  const handleSaveFactor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!factorName || !factorUnit || !factorValue || isNaN(parseFloat(factorValue))) {
+      setErrorMessage('Please provide name, unit and a valid numeric CO2e coefficient.');
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    const url = '/api/environmental/factors';
+    const method = editingFactorId ? 'PUT' : 'POST';
+    const body = {
+      id: editingFactorId,
+      name: factorName,
+      unit: factorUnit,
+      co2eValue: parseFloat(factorValue),
+    };
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (res.ok) {
+        setSuccessMessage(editingFactorId ? 'Emission Factor updated successfully!' : 'New Emission Factor created!');
+        resetFactorForm();
+        router.refresh();
+      } else {
+        const data = await res.json();
+        setErrorMessage(data.error || 'Failed to save factor.');
+      }
+    } catch (err) {
+      setErrorMessage('Error saving emission factor.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEditFactorClick = (f: EmissionFactor) => {
+    setEditingFactorId(f.id);
+    setFactorName(f.name);
+    setFactorUnit(f.unit);
+    setFactorValue(f.co2eValue.toString());
+    setShowFactorForm(true);
+  };
+
+  const handleDeleteFactor = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this factor? This will delete all carbon transaction logs calculated using this factor.')) {
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const res = await fetch(`/api/environmental/factors?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        setSuccessMessage('Emission Factor deleted successfully.');
+        router.refresh();
+      } else {
+        const data = await res.json();
+        setErrorMessage(data.error || 'Failed to delete factor.');
+      }
+    } catch (err) {
+      setErrorMessage('Error deleting factor.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetFactorForm = () => {
+    setEditingFactorId(null);
+    setFactorName('');
+    setFactorUnit('');
+    setFactorValue('');
+    setShowFactorForm(false);
   };
 
   const selectedFactor = factors.find((f) => f.id === selectedFactorId);
@@ -203,6 +299,67 @@ export default function EnvironmentalForms({
               </p>
             )}
           </form>
+        </div>
+      )}
+
+      {/* Configure Emission Factors Panel (CRUD for Factors) */}
+      {isOfficerOrManager && (
+        <div className="glass-card">
+          <div className="flex-between" style={{ marginBottom: '1rem' }}>
+            <h3 style={{ fontSize: '1.1rem' }}>Configure Carbon Emission Factors</h3>
+            {!showFactorForm && (
+              <button className="btn btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem' }} onClick={() => setShowFactorForm(true)}>
+                ➕ Add Factor
+              </button>
+            )}
+          </div>
+
+          {/* Factor Create / Edit form */}
+          {showFactorForm && (
+            <form onSubmit={handleSaveFactor} style={{ background: 'rgba(255,255,255,0.01)', border: '1px dashed var(--border-glow)', padding: '1rem', borderRadius: 'var(--radius-md)', marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <h4 style={{ fontSize: '0.9rem' }}>{editingFactorId ? '✏️ Edit Emission Factor' : '➕ Create Emission Factor'}</h4>
+              <div className="grid-cols-3" style={{ gap: '0.75rem' }}>
+                <div className="form-group">
+                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Factor Name</label>
+                  <input type="text" className="form-input" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} placeholder="e.g. Solar Electricity" value={factorName} onChange={(e) => setFactorName(e.target.value)} required />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" style={{ fontSize: '0.75rem' }}>Unit of Measure</label>
+                  <input type="text" className="form-input" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} placeholder="e.g. kWh or Liters" value={factorUnit} onChange={(e) => setFactorUnit(e.target.value)} required />
+                </div>
+                <div className="form-group">
+                  <label className="form-label" style={{ fontSize: '0.75rem' }}>t CO2e per Unit</label>
+                  <input type="number" className="form-input" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} placeholder="e.g. 0.00045" value={factorValue} onChange={(e) => setFactorValue(e.target.value)} step="any" min="0" required />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.25rem' }}>
+                <button type="button" className="btn btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} onClick={resetFactorForm}>Cancel</button>
+                <button type="submit" className="btn btn-env" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }} disabled={isLoading}>Save Factor</button>
+              </div>
+            </form>
+          )}
+
+          {/* Factors List Grid */}
+          <div className="grid-cols-2" style={{ gap: '0.75rem' }}>
+            {factors.map((f) => (
+              <div key={f.id} style={{ padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-glow)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{f.name}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                    1 {f.unit} = {f.co2eValue.toFixed(6)} t CO2e
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '0.4rem' }}>
+                  <button className="btn" style={{ padding: '0.25rem', background: 'transparent' }} onClick={() => handleEditFactorClick(f)}>
+                    ✏️
+                  </button>
+                  <button className="btn" style={{ padding: '0.25rem', background: 'transparent' }} onClick={() => handleDeleteFactor(f.id)}>
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

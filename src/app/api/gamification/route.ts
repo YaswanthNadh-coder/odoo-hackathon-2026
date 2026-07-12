@@ -49,7 +49,37 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { challengeId, progress, action, proofUrl } = await req.json();
+    const body = await req.json();
+    const { action } = body;
+
+    // 1. Create Challenge Action
+    if (action === 'create-challenge') {
+      if (session.role !== 'officer' && session.role !== 'manager') {
+        return NextResponse.json({ error: 'Only Managers and Officers can create challenges.' }, { status: 403 });
+      }
+
+      const { title, description, xp, difficulty, deadline, categoryId } = body;
+
+      if (!title || xp === undefined) {
+        return NextResponse.json({ error: 'Title and XP reward are required' }, { status: 400 });
+      }
+
+      const challenge = await prisma.challenge.create({
+        data: {
+          title,
+          description: description || '',
+          xp: parseInt(xp),
+          difficulty: difficulty || 'medium',
+          status: 'active', // default to active for immediate demoing
+          deadline: deadline ? new Date(deadline) : null,
+          categoryId: categoryId || null,
+        },
+      });
+
+      return NextResponse.json(challenge);
+    }
+
+    const { challengeId, progress, proofUrl } = body;
 
     if (!challengeId) {
       return NextResponse.json({ error: 'Challenge ID is required' }, { status: 400 });
@@ -63,7 +93,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Challenge not found' }, { status: 404 });
     }
 
-    // 1. Join Challenge Action
+    // 2. Join Challenge Action
     if (action === 'join') {
       const existing = await prisma.challengeParticipation.findFirst({
         where: {
@@ -207,6 +237,36 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!session || (session.role !== 'officer' && session.role !== 'manager')) {
+      return NextResponse.json({ error: 'Only Managers and Officers can delete challenges.' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Challenge ID is required' }, { status: 400 });
+    }
+
+    // Clean up dependent challenge participations
+    await prisma.$transaction([
+      prisma.challengeParticipation.deleteMany({
+        where: { challengeId: id },
+      }),
+      prisma.challenge.delete({
+        where: { id },
+      }),
+    ]);
+
+    return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

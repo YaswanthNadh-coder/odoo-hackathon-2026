@@ -120,3 +120,69 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function PUT(req: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!session || (session.role !== 'officer' && session.role !== 'manager')) {
+      return NextResponse.json({ error: 'Only Managers and Officers can update carbon transactions.' }, { status: 403 });
+    }
+
+    const { id, quantity } = await req.json();
+
+    if (!id || quantity === undefined) {
+      return NextResponse.json({ error: 'Missing transaction ID or quantity' }, { status: 400 });
+    }
+
+    const tx = await prisma.carbonTransaction.findUnique({
+      where: { id },
+      include: { emissionFactor: true },
+    });
+
+    if (!tx) {
+      return NextResponse.json({ error: 'Transaction not found' }, { status: 404 });
+    }
+
+    const co2eTotal = parseFloat((quantity * tx.emissionFactor.co2eValue).toFixed(4));
+
+    const updatedTx = await prisma.carbonTransaction.update({
+      where: { id },
+      data: {
+        quantity: parseFloat(quantity),
+        co2eTotal,
+      },
+      include: {
+        department: true,
+        emissionFactor: true,
+      },
+    });
+
+    return NextResponse.json(updatedTx);
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!session || (session.role !== 'officer' && session.role !== 'manager')) {
+      return NextResponse.json({ error: 'Only Managers and Officers can delete carbon transactions.' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Transaction ID is required' }, { status: 400 });
+    }
+
+    await prisma.carbonTransaction.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

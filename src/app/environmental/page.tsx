@@ -1,4 +1,5 @@
 import EnvironmentalForms from '@/components/EnvironmentalForms';
+import TransactionsTable from '@/components/TransactionsTable';
 import { calculateESGStats, DEPT_CARBON_TARGETS } from '@/lib/esg-calc';
 import prisma from '@/lib/db';
 import { getSession } from '@/lib/session';
@@ -30,6 +31,24 @@ export default async function EnvironmentalPage() {
     orderBy: { date: 'desc' },
   });
 
+  const serializedTransactions = transactions.map((tx) => ({
+    id: tx.id,
+    date: tx.date.toISOString(),
+    quantity: tx.quantity,
+    co2eTotal: tx.co2eTotal,
+    source: tx.source,
+    department: {
+      name: tx.department.name,
+      code: tx.department.code,
+    },
+    emissionFactor: {
+      name: tx.emissionFactor.name,
+      unit: tx.emissionFactor.unit,
+    },
+  }));
+
+  const isOfficerOrManager = session?.role === 'officer' || session?.role === 'manager';
+
   return (
     <div className="page-fade-in">
       <div className="flex-between mb-8">
@@ -54,51 +73,10 @@ export default async function EnvironmentalPage() {
           {/* Transactions Log List */}
           <div>
             <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Carbon Transaction Log Ledger</h3>
-            <div className="table-container">
-              <table className="custom-table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Department</th>
-                    <th>Source category</th>
-                    <th>Quantity</th>
-                    <th>Total Emissions</th>
-                    <th>Source</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transactions.map((tx) => (
-                    <tr key={tx.id}>
-                      <td style={{ fontSize: '0.85rem' }}>
-                        {new Date(tx.date).toLocaleDateString()} {new Date(tx.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </td>
-                      <td style={{ fontWeight: 600 }}>{tx.department.name}</td>
-                      <td>
-                        {tx.emissionFactor.name} <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>({tx.emissionFactor.unit})</span>
-                      </td>
-                      <td>{tx.quantity}</td>
-                      <td style={{ fontWeight: 700, color: 'var(--accent-env)' }}>
-                        {tx.co2eTotal.toFixed(3)} t CO2e
-                      </td>
-                      <td>
-                        {tx.source.startsWith('auto') ? (
-                          <span className="pill pill-info" style={{ fontSize: '0.65rem' }}>🤖 ERP Sync</span>
-                        ) : (
-                          <span className="pill pill-warning" style={{ fontSize: '0.65rem' }}>✍️ Manual</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  {transactions.length === 0 && (
-                    <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>
-                        No carbon transactions logged yet. Use the form above to log data.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <TransactionsTable
+              transactions={serializedTransactions}
+              isOfficerOrManager={isOfficerOrManager}
+            />
           </div>
         </div>
 
