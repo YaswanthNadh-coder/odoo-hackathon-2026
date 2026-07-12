@@ -271,3 +271,33 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function PUT(req: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!session || (session.role !== 'officer' && session.role !== 'manager')) {
+      return NextResponse.json({ error: 'Only Managers and Officers can update challenges.' }, { status: 403 });
+    }
+
+    const { id, title, description, xp, difficulty, deadline } = await req.json();
+
+    if (!id || !title || xp === undefined) {
+      return NextResponse.json({ error: 'Missing required fields (id, title, xp)' }, { status: 400 });
+    }
+
+    const updated = await prisma.challenge.update({
+      where: { id },
+      data: {
+        title,
+        description,
+        xp: parseInt(xp),
+        difficulty,
+        deadline: deadline ? new Date(deadline) : null,
+      },
+    });
+
+    return NextResponse.json(updated);
+  } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

@@ -65,6 +65,7 @@ export default function SocialPortal({
 
   // Activity creation fields
   const [showActivityForm, setShowActivityForm] = useState(false);
+  const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
   const [activityTitle, setActivityTitle] = useState('');
   const [activityDesc, setActivityDesc] = useState('');
   const [activityDate, setActivityDate] = useState('');
@@ -161,7 +162,7 @@ export default function SocialPortal({
     }
   };
 
-  // Create CSR Activity
+  // Create or Edit CSR Activity
   const handleCreateActivity = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activityTitle) {
@@ -172,34 +173,56 @@ export default function SocialPortal({
     setErrorMessage('');
     setSuccessMessage('');
 
+    const url = '/api/social';
+    const method = editingActivityId ? 'PUT' : 'POST';
+    const body = editingActivityId ? {
+      id: editingActivityId,
+      title: activityTitle,
+      description: activityDesc,
+      date: activityDate ? new Date(activityDate) : undefined,
+    } : {
+      action: 'create-activity',
+      title: activityTitle,
+      description: activityDesc,
+      date: activityDate ? new Date(activityDate) : new Date(),
+    };
+
     try {
-      const res = await fetch('/api/social', {
-        method: 'POST',
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'create-activity',
-          title: activityTitle,
-          description: activityDesc,
-          date: activityDate ? new Date(activityDate) : new Date(),
-        }),
+        body: JSON.stringify(body),
       });
 
       if (res.ok) {
-        setSuccessMessage('CSR Activity created successfully!');
-        setActivityTitle('');
-        setActivityDesc('');
-        setActivityDate('');
-        setShowActivityForm(false);
+        setSuccessMessage(editingActivityId ? 'CSR Activity updated successfully!' : 'CSR Activity created successfully!');
+        resetActivityForm();
         router.refresh();
       } else {
         const data = await res.json();
-        setErrorMessage(data.error || 'Failed to create activity.');
+        setErrorMessage(data.error || 'Failed to save activity.');
       }
     } catch {
-      setErrorMessage('Error creating activity.');
+      setErrorMessage('Error saving activity.');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleEditActivityClick = (act: CSRActivity) => {
+    setEditingActivityId(act.id);
+    setActivityTitle(act.title);
+    setActivityDesc(act.description || '');
+    setActivityDate(act.date ? act.date.substring(0, 10) : '');
+    setShowActivityForm(true);
+  };
+
+  const resetActivityForm = () => {
+    setEditingActivityId(null);
+    setActivityTitle('');
+    setActivityDesc('');
+    setActivityDate('');
+    setShowActivityForm(false);
   };
 
   // Delete CSR Activity
@@ -507,7 +530,9 @@ export default function SocialPortal({
         {/* Create CSR Activity Form */}
         {showActivityForm && isOfficerOrManager && (
           <div className="glass-card mb-6" style={{ borderLeft: '4px solid var(--accent-env)' }}>
-            <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem' }}>Announce CSR Activity Drive</h3>
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem' }}>
+              {editingActivityId ? '✏️ Edit CSR Activity Drive' : 'Announce CSR Activity Drive'}
+            </h3>
             <form onSubmit={handleCreateActivity} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div className="grid-cols-2" style={{ gap: '1rem' }}>
                 <div className="form-group">
@@ -524,8 +549,10 @@ export default function SocialPortal({
                 <textarea className="form-textarea" rows={3} placeholder="Provide volunteering instructions..." value={activityDesc} onChange={(e) => setActivityDesc(e.target.value)} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowActivityForm(false)}>Cancel</button>
-                <button type="submit" className="btn btn-env" disabled={submitting}>💾 Announce Event</button>
+                <button type="button" className="btn btn-secondary" onClick={resetActivityForm}>Cancel</button>
+                <button type="submit" className="btn btn-env" disabled={submitting}>
+                  {editingActivityId ? '💾 Save Changes' : '💾 Announce Event'}
+                </button>
               </div>
             </form>
           </div>
@@ -545,9 +572,14 @@ export default function SocialPortal({
                 <div className="flex-between">
                   <h4 style={{ fontSize: '1.05rem', fontWeight: 700 }}>{act.title}</h4>
                   {isOfficerOrManager && (
-                    <button className="btn" style={{ padding: '0.2rem', background: 'transparent', fontSize: '0.95rem' }} onClick={() => handleDeleteActivity(act.id)}>
-                      🗑️
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.25rem' }}>
+                      <button className="btn" style={{ padding: '0.2rem', background: 'transparent', fontSize: '0.95rem' }} onClick={() => handleEditActivityClick(act)}>
+                        ✏️
+                      </button>
+                      <button className="btn" style={{ padding: '0.2rem', background: 'transparent', fontSize: '0.95rem' }} onClick={() => handleDeleteActivity(act.id)}>
+                        🗑️
+                      </button>
+                    </div>
                   )}
                 </div>
                 <p style={{ fontSize: '0.825rem', color: 'var(--text-secondary)', marginTop: '0.5rem', flexGrow: 1, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical' }}>
