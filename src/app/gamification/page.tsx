@@ -75,7 +75,7 @@ export default async function GamificationPage() {
     description: badge.description,
     unlockRule: badge.unlockRule,
     icon: badge.icon,
-    employees: badge.employees.map((eb) => ({
+    employees: (badge.employees || []).map((eb) => ({
       id: eb.employeeId,
     })),
   }));
