@@ -61,9 +61,9 @@ export default async function GovernancePage() {
     id: policy.id,
     title: policy.title,
     body: policy.body,
-    acknowledgements: policy.acknowledgements.map((ack) => ({
+    acknowledgements: policy.acknowledgements?.map((ack) => ({
       id: ack.id,
-    })),
+    })) ?? [],
   }));
 
   const serializedDepartments = departments.map((dept) => ({
