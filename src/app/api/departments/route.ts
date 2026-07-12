@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Only Managers and Officers can create departments.' }, { status: 403 });
     }
 
-    const { name, code, headName, employeeCount } = await req.json();
+    const { name, code, headName, employeeCount, carbonTarget } = await req.json();
 
     if (!name || !code) {
       return NextResponse.json({ error: 'Name and Code are required' }, { status: 400 });
@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
         code: code.toUpperCase(),
         headName: headName || '',
         employeeCount: employeeCount ? parseInt(employeeCount) : 0,
+        carbonTarget: carbonTarget ? parseFloat(carbonTarget) : 10.0,
         status: 'active',
       },
     });
@@ -38,7 +39,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Only Managers and Officers can update departments.' }, { status: 403 });
     }
 
-    const { id, name, code, headName, employeeCount, status } = await req.json();
+    const { id, name, code, headName, employeeCount, carbonTarget, status } = await req.json();
 
     if (!id || !name || !code) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -51,6 +52,7 @@ export async function PUT(req: NextRequest) {
         code: code.toUpperCase(),
         headName: headName || '',
         employeeCount: employeeCount ? parseInt(employeeCount) : 0,
+        carbonTarget: carbonTarget ? parseFloat(carbonTarget) : 10.0,
         status: status || 'active',
       },
     });

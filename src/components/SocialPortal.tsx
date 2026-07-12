@@ -914,6 +914,7 @@ export default function SocialPortal({
             })}
           </div>
 
+
           {/* Completions Registry History */}
           <div>
             <h3 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Employee Training Completion registry</h3>

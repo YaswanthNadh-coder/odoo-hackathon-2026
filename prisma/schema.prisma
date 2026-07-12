@@ -13,6 +13,7 @@ model Department {
   headName           String?
   employeeCount      Int                 @default(0)
   status             String              @default("active")
+  carbonTarget       Float               @default(10.0)
   parentId           String?
   parentDepartment   Department?         @relation("DepartmentHierarchy", fields: [parentId], references: [id])
   subDepartments     Department[]        @relation("DepartmentHierarchy")

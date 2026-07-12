@@ -49,18 +49,16 @@ async function main() {
 
   // 3. Departments
   const deptCorporate = await prisma.department.create({
-    data: { name: 'Corporate', code: 'CORP', headName: 'Elena Rostova', employeeCount: 10, status: 'active' },
+    data: { name: 'Corporate', code: 'CORP', headName: 'Elena Rostova', employeeCount: 10, status: 'active', carbonTarget: 10.0 },
   });
-  
-  // Set CORP as parent for other departments
   const deptLogistics = await prisma.department.create({
-    data: { name: 'Logistics', code: 'LOG', headName: 'Sarah Jenkins', employeeCount: 15, status: 'active', parentId: deptCorporate.id },
+    data: { name: 'Logistics', code: 'LOG', headName: 'Sarah Jenkins', employeeCount: 15, status: 'active', carbonTarget: 12.0, parentId: deptCorporate.id },
   });
   const deptMfg = await prisma.department.create({
-    data: { name: 'Manufacturing', code: 'MFG', headName: 'Robert Chen', employeeCount: 45, status: 'active', parentId: deptCorporate.id },
+    data: { name: 'Manufacturing', code: 'MFG', headName: 'Robert Chen', employeeCount: 45, status: 'active', carbonTarget: 85.0, parentId: deptCorporate.id },
   });
   const deptRD = await prisma.department.create({
-    data: { name: 'R&D', code: 'RD', headName: 'Dr. Alan Turing', employeeCount: 20, status: 'active', parentId: deptCorporate.id },
+    data: { name: 'R&D', code: 'RD', headName: 'Dr. Alan Turing', employeeCount: 20, status: 'active', carbonTarget: 8.0, parentId: deptCorporate.id },
   });
 
   // 4. Employees (with demographic data)

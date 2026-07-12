@@ -58,6 +58,7 @@ export default async function SettingsPage() {
     headName: dept.headName,
     employeeCount: dept.employeeCount,
     status: dept.status,
+    carbonTarget: dept.carbonTarget,
   }));
 
   const serializedCategories = categories.map((cat) => ({

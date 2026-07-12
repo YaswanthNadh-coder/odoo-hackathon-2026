@@ -28,6 +28,14 @@ export default async function SocialPage() {
     include: { department: true },
   });
 
+  // Compute diversity stats
+  const diversityStats = {
+    male: employees.filter((e) => e.gender === 'Male').length,
+    female: employees.filter((e) => e.gender === 'Female').length,
+    nonBinary: employees.filter((e) => e.gender === 'Non-Binary').length,
+    total: employees.length || 1, // prevent div by zero
+  };
+
   // Fetch training courses
   const courses = await prisma.trainingCourse.findMany({
     orderBy: { title: 'asc' },

@@ -23,6 +23,7 @@ interface Department {
   code: string;
   headName: string | null;
   employeeCount: number;
+  carbonTarget: number;
   status: string;
 }
 
@@ -80,6 +81,7 @@ export default function SettingsPortal({
   const [deptCode, setDeptCode] = useState('');
   const [deptHead, setDeptHead] = useState('');
   const [deptEmployeeCount, setDeptEmployeeCount] = useState(1);
+  const [deptCarbonTarget, setDeptCarbonTarget] = useState(10.0);
   const [deptStatus, setDeptStatus] = useState('active');
 
   // Category form fields
@@ -154,6 +156,7 @@ export default function SettingsPortal({
       code: deptCode,
       headName: deptHead,
       employeeCount: deptEmployeeCount,
+      carbonTarget: deptCarbonTarget,
       status: deptStatus,
     };
 
@@ -185,6 +188,7 @@ export default function SettingsPortal({
     setDeptCode(dept.code);
     setDeptHead(dept.headName || '');
     setDeptEmployeeCount(dept.employeeCount);
+    setDeptCarbonTarget(dept.carbonTarget);
     setDeptStatus(dept.status);
     setShowDeptForm(true);
   };
@@ -223,6 +227,7 @@ export default function SettingsPortal({
     setDeptCode('');
     setDeptHead('');
     setDeptEmployeeCount(1);
+    setDeptCarbonTarget(10.0);
     setDeptStatus('active');
     setShowDeptForm(false);
   };
@@ -575,6 +580,7 @@ export default function SettingsPortal({
                   <input type="text" className="form-input" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} placeholder="Head Name" value={deptHead} onChange={(e) => setDeptHead(e.target.value)} />
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <input type="number" className="form-input" style={{ flexGrow: 1, padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} placeholder="Staff Count" value={deptEmployeeCount} onChange={(e) => setDeptEmployeeCount(parseInt(e.target.value) || 0)} min="0" />
+                    <input type="number" step="0.1" className="form-input" style={{ flexGrow: 1, padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} placeholder="Carbon Target (tons)" value={deptCarbonTarget} onChange={(e) => setDeptCarbonTarget(parseFloat(e.target.value) || 0)} min="0" />
                     <select className="form-select" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} value={deptStatus} onChange={(e) => setDeptStatus(e.target.value)}>
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
@@ -597,7 +603,7 @@ export default function SettingsPortal({
                         <span className="pill pill-success" style={{ fontSize: '0.55rem', padding: '0.05rem 0.35rem' }}>{dept.code}</span>
                       </div>
                       <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                        Head: {dept.headName || 'N/A'} | Staff: {dept.employeeCount}
+                        Head: {dept.headName || 'N/A'} | Staff: {dept.employeeCount} | Target: {dept.carbonTarget} t CO2e
                       </div>
                     </div>
                     {isOfficerOrManager && (
