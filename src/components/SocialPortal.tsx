@@ -441,9 +441,23 @@ export default function SocialPortal({
                     <td style={{ fontWeight: 500 }}>{part.activity.title}</td>
                     <td>
                       {part.proofUrl ? (
-                        <a href={part.proofUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--accent-overall)', textDecoration: 'underline' }}>
-                          📄 View Proof
-                        </a>
+                        /^(https?:\/\/|\/|www\.)/i.test(part.proofUrl) ? (
+                          <a 
+                            href={part.proofUrl.startsWith('www.') ? `https://${part.proofUrl}` : part.proofUrl} 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            style={{ color: 'var(--accent-overall)', textDecoration: 'underline' }}
+                          >
+                            📄 View Proof
+                          </a>
+                        ) : (
+                          <span 
+                            style={{ color: 'var(--text-primary)', fontSize: '0.85rem', display: 'inline-block', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                            title={part.proofUrl}
+                          >
+                            {part.proofUrl}
+                          </span>
+                        )
                       ) : (
                         <span style={{ color: 'var(--text-muted)' }}>No evidence uploaded</span>
                       )}

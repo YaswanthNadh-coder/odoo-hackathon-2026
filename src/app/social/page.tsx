@@ -23,6 +23,28 @@ export default async function SocialPage() {
     orderBy: { completedAt: 'desc' },
   });
 
+  // Fetch all employees for real diversity stats
+  const employees = await prisma.employee.findMany();
+  const diversityStats = {
+    male: employees.filter((e) => e.gender === 'Male').length,
+    female: employees.filter((e) => e.gender === 'Female').length,
+    nonBinary: employees.filter((e) => e.gender === 'Non-Binary').length,
+    total: employees.length || 1, // prevent div by zero
+  };
+
+  // Fetch training courses and current user's completions
+  const trainings = await prisma.trainingCourse.findMany({
+    where: { status: 'active' },
+  });
+  
+  let completedTrainings: string[] = [];
+  if (session) {
+    const userTrainings = await prisma.employeeTraining.findMany({
+      where: { employeeId: session.employeeId },
+    });
+    completedTrainings = userTrainings.map((t) => t.trainingId);
+  }
+
   // Fetch global config
   const config = await prisma.appConfig.findUnique({
     where: { id: 'global' },
@@ -74,6 +96,9 @@ export default async function SocialPage() {
         participations={serializedParticipations}
         evidenceRequiredEnabled={evidenceRequiredEnabled}
         currentUser={session}
+        diversityStats={diversityStats}
+        trainings={trainings}
+        initialCompletedTrainings={completedTrainings}
       />
     </div>
   );

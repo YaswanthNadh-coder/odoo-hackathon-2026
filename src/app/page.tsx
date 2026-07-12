@@ -3,6 +3,7 @@ import { calculateESGStats } from '@/lib/esg-calc';
 import prisma from '@/lib/db';
 import { getSession } from '@/lib/session';
 import { formatDate } from '@/lib/date';
+import InteractiveTrendChart from '@/components/InteractiveTrendChart';
 
 export const revalidate = 0; // Disable caching so it always gets the latest data
 
@@ -39,6 +40,7 @@ export default async function DashboardPage() {
       y: 120 - Math.min(100, (tx.co2eTotal / 10) * 100), // scale down to 120px height
       label: tx.department.code,
       value: tx.co2eTotal.toFixed(2),
+      date: formatDate(tx.date.toISOString()),
     };
   });
 
@@ -198,52 +200,7 @@ export default async function DashboardPage() {
         <div className="glass-card" style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column', height: '320px' }}>
           <h3 style={{ fontSize: '1.1rem', marginBottom: '1.25rem' }}>Database Carbon Emission Trend</h3>
           <div style={{ flexGrow: 1, position: 'relative', minHeight: '160px' }}>
-            {chartPoints.length > 0 ? (
-              <svg width="100%" height="100%" viewBox="0 0 500 130" preserveAspectRatio="none">
-                {/* Horizontal Grid lines */}
-                <line x1="0" y1="20" x2="500" y2="20" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-                <line x1="0" y1="70" x2="500" y2="70" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-                <line x1="0" y1="120" x2="500" y2="120" stroke="rgba(255,255,255,0.05)" strokeWidth="1.5" />
-
-                {/* Line graph curved path */}
-                {svgPath && (
-                  <>
-                    {/* Shadow Area below curve */}
-                    <path
-                      d={`${svgPath} L ${chartPoints[chartPoints.length - 1].x} 120 L ${chartPoints[0].x} 120 Z`}
-                      fill="url(#chart-area-grad)"
-                    />
-                    {/* Stroke line */}
-                    <path d={svgPath} fill="none" stroke="var(--accent-env)" strokeWidth="2.5" />
-                  </>
-                )}
-
-                {/* Nodes with hover animations */}
-                {chartPoints.map((pt, idx) => (
-                  <g key={idx}>
-                    <circle cx={pt.x} cy={pt.y} r="5" fill="#111827" stroke="var(--accent-env)" strokeWidth="2" />
-                    <circle cx={pt.x} cy={pt.y} r="8" fill="var(--accent-env)" opacity="0.2" />
-                    <text x={pt.x} y="130" fill="var(--text-muted)" fontSize="8" textAnchor="middle">
-                      {pt.label}
-                    </text>
-                    <text x={pt.x} y={pt.y - 10} fill="var(--text-primary)" fontSize="8" fontWeight="600" textAnchor="middle">
-                      {pt.value}
-                    </text>
-                  </g>
-                ))}
-
-                <defs>
-                  <linearGradient id="chart-area-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--accent-env)" stopOpacity="0.15" />
-                    <stop offset="100%" stopColor="var(--accent-env)" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-              </svg>
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--text-secondary)' }}>
-                No emission transactions logged yet.
-              </div>
-            )}
+            <InteractiveTrendChart chartPoints={chartPoints} svgPath={svgPath} />
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', gap: '1rem', marginTop: 'auto' }}>
             <span>⚡ Carbon Transactions (t CO2e)</span>

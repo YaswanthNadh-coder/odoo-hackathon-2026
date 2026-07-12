@@ -13,6 +13,7 @@ model Department {
   headName         String?
   employeeCount    Int               @default(0)
   status           String            @default("active")
+  carbonTarget     Float             @default(10.0)
   carbonTx         CarbonTransaction[]
   employees        Employee[]
   complianceIssues ComplianceIssue[]
@@ -25,6 +26,8 @@ model Employee {
   email            String                  @unique
   passwordHash     String
   role             String                  @default("employee") // "employee" | "manager" | "officer"
+  gender           String                  @default("Prefer not to say")
+  ethnicity        String                  @default("Prefer not to say")
   departmentId     String
   department       Department              @relation(fields: [departmentId], references: [id])
   xp               Int                     @default(0)
@@ -33,6 +36,7 @@ model Employee {
   challengeParts   ChallengeParticipation[]
   badges           EmployeeBadge[]
   acknowledgements PolicyAcknowledgement[]
+  trainings        EmployeeTraining[]
 }
 
 model Category {
@@ -187,4 +191,32 @@ model SpendingRecord {
   departmentId String
   department   Department @relation(fields: [departmentId], references: [id])
   date         DateTime   @default(now())
+}
+
+model TrainingCourse {
+  id          String             @id @default(cuid())
+  name        String
+  description String?
+  xp          Int
+  status      String             @default("active")
+  completions EmployeeTraining[]
+}
+
+model EmployeeTraining {
+  id          String         @id @default(cuid())
+  employeeId  String
+  employee    Employee       @relation(fields: [employeeId], references: [id])
+  trainingId  String
+  training    TrainingCourse @relation(fields: [trainingId], references: [id])
+  completedAt DateTime       @default(now())
+}
+
+model Audit {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  auditor     String
+  date        DateTime @default(now())
+  status      String   @default("pending") // pending | passed | failed
+  findings    String?
 }

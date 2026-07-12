@@ -1,13 +1,5 @@
 import { prisma } from './db';
 
-// Fixed target emissions for departments in CO2e units
-export const DEPT_CARBON_TARGETS: Record<string, number> = {
-  LOG: 12.0, // Logistics target: 12 tons CO2e
-  MFG: 85.0, // Manufacturing target: 85 tons CO2e
-  CORP: 10.0, // Corporate target: 10 tons CO2e
-  RD: 8.0,   // R&D target: 8 tons CO2e
-};
-
 export interface ScoreDetails {
   environmental: number;
   social: number;
@@ -87,7 +79,7 @@ export async function calculateESGStats(): Promise<OverallESGStats> {
   for (const dept of departments) {
     // 1. Environmental Score
     const carbonTotal = dept.carbonTx.reduce((sum, tx) => sum + tx.co2eTotal, 0);
-    const carbonTarget = DEPT_CARBON_TARGETS[dept.code] || (dept.employeeCount * 2.0); // fallback if code not found
+    const carbonTarget = dept.carbonTarget || (dept.employeeCount * 2.0); // fallback to calculation if 0
     
     // Formula: Score = 100 - (actual/target) * 50
     // If carbonTotal is 0, score is 100. If carbonTotal equals target, score is 50. Capped at [0, 100].

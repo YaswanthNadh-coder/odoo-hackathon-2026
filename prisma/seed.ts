@@ -4,7 +4,9 @@ import { hashPassword } from '../src/lib/auth';
 async function main() {
   console.log('Seeding database...');
 
-  // 1. Reset database
+  await prisma.audit.deleteMany();
+  await prisma.employeeTraining.deleteMany();
+  await prisma.trainingCourse.deleteMany();
   await prisma.appConfig.deleteMany();
   await prisma.complianceIssue.deleteMany();
   await prisma.policyAcknowledgement.deleteMany();
@@ -18,10 +20,10 @@ async function main() {
   await prisma.carbonTransaction.deleteMany();
   await prisma.emissionFactor.deleteMany();
   await prisma.category.deleteMany();
+  await prisma.spendingRecord.deleteMany();
   await prisma.employee.deleteMany();
   await prisma.department.deleteMany();
   await prisma.reward.deleteMany();
-  await prisma.spendingRecord.deleteMany();
 
   // 2. Global configuration
   await prisma.appConfig.create({
@@ -43,33 +45,33 @@ async function main() {
 
   // 3. Departments
   const deptLogistics = await prisma.department.create({
-    data: { name: 'Logistics', code: 'LOG', headName: 'Sarah Jenkins', employeeCount: 15, status: 'active' },
+    data: { name: 'Logistics', code: 'LOG', headName: 'Sarah Jenkins', employeeCount: 15, status: 'active', carbonTarget: 12.0 },
   });
   const deptMfg = await prisma.department.create({
-    data: { name: 'Manufacturing', code: 'MFG', headName: 'Robert Chen', employeeCount: 45, status: 'active' },
+    data: { name: 'Manufacturing', code: 'MFG', headName: 'Robert Chen', employeeCount: 45, status: 'active', carbonTarget: 85.0 },
   });
   const deptCorporate = await prisma.department.create({
-    data: { name: 'Corporate', code: 'CORP', headName: 'Elena Rostova', employeeCount: 10, status: 'active' },
+    data: { name: 'Corporate', code: 'CORP', headName: 'Elena Rostova', employeeCount: 10, status: 'active', carbonTarget: 10.0 },
   });
   const deptRD = await prisma.department.create({
-    data: { name: 'R&D', code: 'RD', headName: 'Dr. Alan Turing', employeeCount: 20, status: 'active' },
+    data: { name: 'R&D', code: 'RD', headName: 'Dr. Alan Turing', employeeCount: 20, status: 'active', carbonTarget: 8.0 },
   });
 
   // 4. Employees
   const empJohn = await prisma.employee.create({
-    data: { name: 'John Doe', email: 'john@ecosphere.com', passwordHash: hashPassword('john123'), role: 'employee', departmentId: deptLogistics.id, xp: 120, points: 50 },
+    data: { name: 'John Doe', email: 'john@ecosphere.com', passwordHash: hashPassword('john123'), role: 'employee', departmentId: deptLogistics.id, xp: 120, points: 50, gender: 'Male', ethnicity: 'White' },
   });
   const empJane = await prisma.employee.create({
-    data: { name: 'Jane Smith', email: 'jane@ecosphere.com', passwordHash: hashPassword('jane123'), role: 'employee', departmentId: deptMfg.id, xp: 80, points: 30 },
+    data: { name: 'Jane Smith', email: 'jane@ecosphere.com', passwordHash: hashPassword('jane123'), role: 'employee', departmentId: deptMfg.id, xp: 80, points: 30, gender: 'Female', ethnicity: 'Hispanic' },
   });
   const empElena = await prisma.employee.create({
-    data: { name: 'Elena Rostova', email: 'elena@ecosphere.com', passwordHash: hashPassword('elena123'), role: 'manager', departmentId: deptCorporate.id, xp: 250, points: 150 },
+    data: { name: 'Elena Rostova', email: 'elena@ecosphere.com', passwordHash: hashPassword('elena123'), role: 'manager', departmentId: deptCorporate.id, xp: 250, points: 150, gender: 'Female', ethnicity: 'Asian' },
   });
   const empAlice = await prisma.employee.create({
-    data: { name: 'Alice Johnson', email: 'alice@ecosphere.com', passwordHash: hashPassword('alice123'), role: 'employee', departmentId: deptRD.id, xp: 350, points: 200 },
+    data: { name: 'Alice Johnson', email: 'alice@ecosphere.com', passwordHash: hashPassword('alice123'), role: 'employee', departmentId: deptRD.id, xp: 350, points: 200, gender: 'Non-Binary', ethnicity: 'Black' },
   });
   const empMarcus = await prisma.employee.create({
-    data: { name: 'Marcus Vance', email: 'marcus@ecosphere.com', passwordHash: hashPassword('marcus123'), role: 'officer', departmentId: deptCorporate.id, xp: 0, points: 0 },
+    data: { name: 'Marcus Vance', email: 'marcus@ecosphere.com', passwordHash: hashPassword('marcus123'), role: 'officer', departmentId: deptCorporate.id, xp: 0, points: 0, gender: 'Male', ethnicity: 'Two or more races' },
   });
 
   // 5. Emission Factors
@@ -220,6 +222,47 @@ async function main() {
       { type: 'expense', description: 'R&D Executive Flight Travel mileage', amount: 950.0, quantity: 3000.0, departmentId: deptRD.id },
       { type: 'purchase', description: 'Eco-friendly office supplies procurement', amount: 1500.0, quantity: 1500.0, departmentId: deptCorporate.id },
     ],
+  });
+
+  // 17. Training Courses
+  const trConduct = await prisma.trainingCourse.create({
+    data: { name: 'Annual ESG Code of Conduct Training', description: 'Mandatory handbook sign-off on ethical policies, anti-corruption, and diversity codes.', xp: 30 },
+  });
+  const trFootprint = await prisma.trainingCourse.create({
+    data: { name: 'Carbon Auditing & Bookkeeping Workshop', description: 'Advanced seminar on Scope 1, 2, and 3 accounting calculation mechanics.', xp: 40 },
+  });
+  const trSupply = await prisma.trainingCourse.create({
+    data: { name: 'Sustainable Procurement Seminar', description: 'Guidelines on vetting vendors against global sustainability directives.', xp: 30 },
+  });
+
+  await prisma.employeeTraining.createMany({
+    data: [
+      { employeeId: empJohn.id, trainingId: trConduct.id },
+      { employeeId: empJane.id, trainingId: trConduct.id },
+      { employeeId: empElena.id, trainingId: trFootprint.id },
+      { employeeId: empAlice.id, trainingId: trSupply.id },
+    ],
+  });
+
+  // 18. Audits
+  await prisma.audit.create({
+    data: {
+      title: 'Q1 External ISO 14001 Audit',
+      description: 'Annual environmental management system audit conducted by third-party certifiers.',
+      auditor: 'GreenShield Certifications',
+      status: 'passed',
+      findings: 'Minor non-conformity in hazardous waste labeling at the MFG facility. Resolved on site.',
+      date: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
+    }
+  });
+  await prisma.audit.create({
+    data: {
+      title: 'Internal Diversity & Inclusion Review',
+      description: 'Quarterly review of hiring practices, representation, and inclusion initiatives.',
+      auditor: 'HR & Ethics Committee',
+      status: 'pending',
+      date: new Date(),
+    }
   });
 
   console.log('Seeding completed successfully.');
