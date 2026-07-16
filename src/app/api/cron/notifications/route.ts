@@ -34,10 +34,20 @@ export async function GET() {
           const title = '⚠️ Overdue Compliance Issue';
           const message = `The compliance issue "${issue.description}" is overdue since ${issue.dueDate.toLocaleDateString()}. Please address it immediately.`;
           
-          // To avoid spamming, we could check if we already sent a notification today, 
-          // but for this hackathon context, we'll just send it.
-          const notif = await createNotification(employee.id, title, message, 'compliance');
-          if (notif) notificationsSent.push(notif.id);
+          // Prevent duplicates
+          const existingNotif = await prisma.notification.findFirst({
+            where: {
+              userId: employee.id,
+              type: 'compliance',
+              title,
+              message,
+            }
+          });
+
+          if (!existingNotif) {
+            const notif = await createNotification(employee.id, title, message, 'compliance');
+            if (notif) notificationsSent.push(notif.id);
+          }
         }
       }
     }
@@ -56,8 +66,21 @@ export async function GET() {
           if (!ackedPolicyIds.includes(policy.id)) {
             const title = '📝 Policy Acknowledgement Required';
             const message = `Please read and acknowledge the policy: "${policy.title}".`;
-            const notif = await createNotification(employee.id, title, message, 'policy');
-            if (notif) notificationsSent.push(notif.id);
+            
+            // Prevent duplicates
+            const existingNotif = await prisma.notification.findFirst({
+              where: {
+                userId: employee.id,
+                type: 'policy',
+                title,
+                message,
+              }
+            });
+
+            if (!existingNotif) {
+              const notif = await createNotification(employee.id, title, message, 'policy');
+              if (notif) notificationsSent.push(notif.id);
+            }
           }
         }
       }

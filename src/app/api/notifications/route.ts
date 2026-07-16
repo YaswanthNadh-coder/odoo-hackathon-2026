@@ -36,6 +36,9 @@ export async function PUT(req: NextRequest) {
         data: { isRead: true },
       });
     } else {
+      if (!id || typeof id !== 'string') {
+        return NextResponse.json({ error: 'Invalid or missing notification ID' }, { status: 400 });
+      }
       // Verify ownership before marking as read
       const notif = await prisma.notification.findUnique({ where: { id } });
       if (notif && notif.userId === session.employeeId) {

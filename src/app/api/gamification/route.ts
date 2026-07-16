@@ -164,6 +164,14 @@ export async function POST(req: NextRequest) {
           },
         });
 
+        // Send challenge completion notification
+        await createNotification(
+          session.employeeId,
+          '🏆 Challenge Completed!',
+          `Congratulations! You completed the challenge "${challenge.title}" and earned ${challenge.xp} XP and Points.`,
+          'badge'
+        );
+
         // 2. Auto-award badges if enabled
         if (isBadgeAutoAward) {
           const employeeBadges = await prisma.employeeBadge.findMany({
