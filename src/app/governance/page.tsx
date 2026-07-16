@@ -20,18 +20,23 @@ export default async function GovernancePage() {
   const issues = await prisma.complianceIssue.findMany({
     include: {
       department: true,
+      audit: true,
     },
     orderBy: { dueDate: 'asc' },
-  });
-
-  // Fetch audits
-  const audits = await prisma.audit.findMany({
-    orderBy: { date: 'desc' },
   });
 
   // Fetch departments for dropdown
   const departments = await prisma.department.findMany({
     orderBy: { name: 'asc' },
+  });
+
+  // Fetch audits with department and compliance issues
+  const audits = await prisma.audit.findMany({
+    include: {
+      department: true,
+      complianceIssues: true,
+    },
+    orderBy: { auditDate: 'desc' },
   });
 
   // Serialize dates for client components
@@ -42,6 +47,10 @@ export default async function GovernancePage() {
     owner: issue.owner,
     dueDate: issue.dueDate.toISOString(),
     status: issue.status,
+    auditId: issue.auditId,
+    audit: issue.audit ? {
+      title: issue.audit.title,
+    } : null,
     department: {
       name: issue.department.name,
       code: issue.department.code,
@@ -52,25 +61,35 @@ export default async function GovernancePage() {
     id: policy.id,
     title: policy.title,
     body: policy.body,
-    acknowledgements: policy.acknowledgements ? policy.acknowledgements.map((ack) => ({
+    acknowledgements: policy.acknowledgements?.map((ack) => ({
       id: ack.id,
-    })) : [],
-  }));
-
-  const serializedAudits = audits.map((audit) => ({
-    id: audit.id,
-    title: audit.title,
-    description: audit.description,
-    auditor: audit.auditor,
-    date: audit.date.toISOString(),
-    status: audit.status,
-    findings: audit.findings,
+    })) ?? [],
   }));
 
   const serializedDepartments = departments.map((dept) => ({
     id: dept.id,
     name: dept.name,
     code: dept.code,
+  }));
+
+  const serializedAudits = audits.map((audit) => ({
+    id: audit.id,
+    title: audit.title,
+    departmentId: audit.departmentId,
+    auditorName: audit.auditorName,
+    auditDate: audit.auditDate.toISOString(),
+    status: audit.status,
+    score: audit.score,
+    findings: audit.findings,
+    department: {
+      name: audit.department.name,
+      code: audit.department.code,
+    },
+    complianceIssues: audit.complianceIssues.map((issue: any) => ({
+      id: issue.id,
+      description: issue.description,
+      status: issue.status,
+    })),
   }));
 
   return (

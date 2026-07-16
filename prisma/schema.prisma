@@ -7,37 +7,43 @@ generator client {
 }
 
 model Department {
-  id               String            @id @default(cuid())
-  name             String
-  code             String
-  headName         String?
-  employeeCount    Int               @default(0)
-  status           String            @default("active")
-  carbonTarget     Float             @default(10.0)
-  carbonTx         CarbonTransaction[]
-  employees        Employee[]
-  complianceIssues ComplianceIssue[]
-  spendingRecords  SpendingRecord[]
+  id                 String              @id @default(cuid())
+  name               String
+  code               String
+  headName           String?
+  employeeCount      Int                 @default(0)
+  status             String              @default("active")
+  carbonTarget       Float               @default(10.0)
+  parentId           String?
+  parentDepartment   Department?         @relation("DepartmentHierarchy", fields: [parentId], references: [id])
+  subDepartments     Department[]        @relation("DepartmentHierarchy")
+  carbonTx           CarbonTransaction[]
+  employees          Employee[]
+  complianceIssues   ComplianceIssue[]
+  environmentalGoals EnvironmentalGoal[]
+  audits             Audit[]
+  spendingRecords    SpendingRecord[]
 }
 
 model Employee {
-  id               String                  @id @default(cuid())
-  name             String
-  email            String                  @unique
-  passwordHash     String
-  role             String                  @default("employee") // "employee" | "manager" | "officer"
-  gender           String                  @default("Prefer not to say")
-  ethnicity        String                  @default("Prefer not to say")
-  departmentId     String
-  department       Department              @relation(fields: [departmentId], references: [id])
-  xp               Int                     @default(0)
-  points           Int                     @default(0)
-  participations   EmployeeParticipation[]
-  challengeParts   ChallengeParticipation[]
-  badges           EmployeeBadge[]
-  acknowledgements PolicyAcknowledgement[]
-  trainings        EmployeeTraining[]
-  notifications    Notification[]
+  id                  String                  @id @default(cuid())
+  name                String
+  email               String                  @unique
+  passwordHash        String
+  role                String                  @default("employee") // "employee" | "manager" | "officer"
+  departmentId        String
+  department          Department              @relation(fields: [departmentId], references: [id])
+  xp                  Int                     @default(0)
+  points              Int                     @default(0)
+  gender              String?
+  ethnicity           String?
+  participations      EmployeeParticipation[]
+  challengeParts      ChallengeParticipation[]
+  badges              EmployeeBadge[]
+  acknowledgements    PolicyAcknowledgement[]
+  redemptions         RewardRedemption[]
+  trainingCompletions TrainingCompletion[]
+  notifications       Notification[]
 }
 
 model Category {
@@ -89,15 +95,16 @@ model EmployeeParticipation {
 }
 
 model Challenge {
-  id             String                   @id @default(cuid())
-  title          String
-  categoryId     String?
-  description    String?
-  xp             Int
-  difficulty     String                   @default("medium")
-  status         String                   @default("draft") // draft | active | under_review | completed | archived
-  deadline       DateTime?
-  participations ChallengeParticipation[]
+  id               String                   @id @default(cuid())
+  title            String
+  categoryId       String?
+  description      String?
+  xp               Int
+  difficulty       String                   @default("medium")
+  status           String                   @default("draft") // draft | active | under_review | completed | archived
+  deadline         DateTime?
+  evidenceRequired Boolean                  @default(false)
+  participations   ChallengeParticipation[]
 }
 
 model ChallengeParticipation {
@@ -155,32 +162,102 @@ model ComplianceIssue {
   owner        String
   dueDate      DateTime
   status       String     @default("open") // open | resolved
+  auditId      String?
+  audit        Audit?     @relation(fields: [auditId], references: [id])
 }
 
 model AppConfig {
-  id                  String  @id @default("global")
-  autoEmissionCalc    Boolean @default(false)
-  evidenceRequired    Boolean @default(true)
-  badgeAutoAward      Boolean @default(true)
+  id                   String  @id @default("global")
+  autoEmissionCalc     Boolean @default(false)
+  evidenceRequired     Boolean @default(true)
+  badgeAutoAward       Boolean @default(true)
   complianceEmailAlert Boolean @default(false)
-  envWeight           Float   @default(0.4)
-  socialWeight        Float   @default(0.3)
-  govWeight           Float   @default(0.3)
+  envWeight            Float   @default(0.4)
+  socialWeight         Float   @default(0.3)
+  govWeight            Float   @default(0.3)
   
   // Notification system switches
-  notifyCompliance    Boolean @default(true)
-  notifyApproval      Boolean @default(true)
+  notifyCompliance     Boolean @default(true)
+  notifyApproval       Boolean @default(true)
   notifyPolicyReminder Boolean @default(true)
-  notifyBadgeUnlock   Boolean @default(true)
+  notifyBadgeUnlock    Boolean @default(true)
+}
+
+model ProductESGProfile {
+  id              String   @id @default(cuid())
+  name            String
+  sku             String   @unique
+  carbonFootprint Float
+  materialSource  String?
+  recyclingRate   Float    @default(0.0)
+  status          String   @default("active")
+  createdAt       DateTime @default(now())
+}
+
+model EnvironmentalGoal {
+  id           String     @id @default(cuid())
+  title        String
+  description  String?
+  targetValue  Float
+  currentValue Float      @default(0.0)
+  unit         String
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+  status       String     @default("active") // active | achieved | failed | inactive
+  targetDate   DateTime
+  createdAt    DateTime   @default(now())
+}
+
+model Audit {
+  id               String            @id @default(cuid())
+  title            String
+  departmentId     String
+  department       Department        @relation(fields: [departmentId], references: [id])
+  auditorName      String
+  auditDate        DateTime
+  status           String            @default("planned") // planned | in_progress | completed | failed
+  score            Int?
+  findings         String?
+  complianceIssues ComplianceIssue[]
+  createdAt        DateTime          @default(now())
 }
 
 model Reward {
-  id             String   @id @default(cuid())
+  id             String             @id @default(cuid())
   name           String
   description    String?
   pointsRequired Int
-  stock          Int
-  status         String   @default("active") // active | out_of_stock
+  stock          Int                @default(0)
+  status         String             @default("active") // active | out_of_stock
+  redemptions    RewardRedemption[]
+  createdAt      DateTime           @default(now())
+}
+
+model RewardRedemption {
+  id          String   @id @default(cuid())
+  rewardId    String
+  reward      Reward   @relation(fields: [rewardId], references: [id])
+  employeeId  String
+  employee    Employee @relation(fields: [employeeId], references: [id])
+  pointsSpent Int
+  redeemedAt  DateTime @default(now())
+}
+
+model TrainingCourse {
+  id          String               @id @default(cuid())
+  title       String
+  description String?
+  hours       Float                @default(1.0)
+  completions TrainingCompletion[]
+}
+
+model TrainingCompletion {
+  id          String         @id @default(cuid())
+  courseId    String
+  course      TrainingCourse @relation(fields: [courseId], references: [id])
+  employeeId  String
+  employee    Employee       @relation(fields: [employeeId], references: [id])
+  completedAt DateTime       @default(now())
 }
 
 model SpendingRecord {
@@ -193,35 +270,6 @@ model SpendingRecord {
   department   Department @relation(fields: [departmentId], references: [id])
   date         DateTime   @default(now())
 }
-
-model TrainingCourse {
-  id          String             @id @default(cuid())
-  name        String
-  description String?
-  xp          Int
-  status      String             @default("active")
-  completions EmployeeTraining[]
-}
-
-model EmployeeTraining {
-  id          String         @id @default(cuid())
-  employeeId  String
-  employee    Employee       @relation(fields: [employeeId], references: [id])
-  trainingId  String
-  training    TrainingCourse @relation(fields: [trainingId], references: [id])
-  completedAt DateTime       @default(now())
-}
-
-model Audit {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  auditor     String
-  date        DateTime @default(now())
-  status      String   @default("pending") // pending | passed | failed
-  findings    String?
-}
-
 model Notification {
   id        String   @id @default(cuid())
   userId    String
@@ -232,4 +280,3 @@ model Notification {
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 }
-

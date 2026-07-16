@@ -8,8 +8,8 @@ interface ProfilePortalProps {
     id: string;
     name: string;
     email: string;
-    gender: string;
-    ethnicity: string;
+    gender: string | null;
+    ethnicity: string | null;
     department: {
       name: string;
     };
@@ -36,8 +36,8 @@ const ETHNICITY_OPTIONS = [
 
 export default function ProfilePortal({ employee }: ProfilePortalProps) {
   const router = useRouter();
-  const [gender, setGender] = useState(employee.gender);
-  const [ethnicity, setEthnicity] = useState(employee.ethnicity);
+  const [gender, setGender] = useState(employee.gender || 'Prefer not to say');
+  const [ethnicity, setEthnicity] = useState(employee.ethnicity || 'Prefer not to say');
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');

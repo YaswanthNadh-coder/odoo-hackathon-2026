@@ -12,7 +12,7 @@ export default async function SocialPage() {
     orderBy: { date: 'desc' },
   });
 
-  // Fetch participations
+  // Fetch CSR participations
   const participations = await prisma.employeeParticipation.findMany({
     include: {
       employee: {
@@ -23,8 +23,12 @@ export default async function SocialPage() {
     orderBy: { completedAt: 'desc' },
   });
 
-  // Fetch all employees for real diversity stats
-  const employees = await prisma.employee.findMany();
+  // Fetch employees for diversity metrics
+  const employees = await prisma.employee.findMany({
+    include: { department: true },
+  });
+
+  // Compute diversity stats
   const diversityStats = {
     male: employees.filter((e) => e.gender === 'Male').length,
     female: employees.filter((e) => e.gender === 'Female').length,
@@ -32,18 +36,21 @@ export default async function SocialPage() {
     total: employees.length || 1, // prevent div by zero
   };
 
-  // Fetch training courses and current user's completions
-  const trainings = await prisma.trainingCourse.findMany({
-    where: { status: 'active' },
+  // Fetch training courses
+  const courses = await prisma.trainingCourse.findMany({
+    orderBy: { title: 'asc' },
   });
-  
-  let completedTrainings: string[] = [];
-  if (session) {
-    const userTrainings = await prisma.employeeTraining.findMany({
-      where: { employeeId: session.employeeId },
-    });
-    completedTrainings = userTrainings.map((t) => t.trainingId);
-  }
+
+  // Fetch training completions
+  const trainingCompletions = await prisma.trainingCompletion.findMany({
+    include: {
+      employee: {
+        include: { department: true },
+      },
+      course: true,
+    },
+    orderBy: { completedAt: 'desc' },
+  });
 
   // Fetch global config
   const config = await prisma.appConfig.findUnique({
@@ -80,13 +87,50 @@ export default async function SocialPage() {
     },
   }));
 
+  const serializedEmployees = employees.map((emp) => ({
+    id: emp.id,
+    name: emp.name,
+    role: emp.role,
+    gender: emp.gender,
+    ethnicity: emp.ethnicity,
+    department: {
+      name: emp.department.name,
+      code: emp.department.code,
+    },
+  }));
+
+  const serializedCourses = courses.map((c) => ({
+    id: c.id,
+    title: c.title,
+    description: c.description,
+    hours: c.hours,
+  }));
+
+  const serializedTrainingCompletions = trainingCompletions.map((tc) => ({
+    id: tc.id,
+    courseId: tc.courseId,
+    employeeId: tc.employeeId,
+    completedAt: tc.completedAt.toISOString(),
+    course: {
+      title: tc.course.title,
+      hours: tc.course.hours,
+    },
+    employee: {
+      name: tc.employee.name,
+      department: {
+        name: tc.employee.department.name,
+        code: tc.employee.department.code,
+      },
+    },
+  }));
+
   return (
     <div className="page-fade-in">
       <div className="flex-between mb-8">
         <div>
           <h1 style={{ fontSize: '2rem', fontWeight: 800 }}>🤝 Social Responsibility Module</h1>
           <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-            CSR Activism logging, employee participations, and social impact scores.
+            CSR Activism logging, employee demographics, and training compliance metrics.
           </p>
         </div>
       </div>
@@ -94,11 +138,11 @@ export default async function SocialPage() {
       <SocialPortal
         activities={serializedActivities}
         participations={serializedParticipations}
+        employees={serializedEmployees}
+        courses={serializedCourses}
+        trainingCompletions={serializedTrainingCompletions}
         evidenceRequiredEnabled={evidenceRequiredEnabled}
         currentUser={session}
-        diversityStats={diversityStats}
-        trainings={trainings}
-        initialCompletedTrainings={completedTrainings}
       />
     </div>
   );

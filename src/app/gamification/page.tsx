@@ -36,6 +36,7 @@ export default async function GamificationPage() {
   // Fetch active employee challenge participations
   let participations: any[] = [];
   let fullUserSession: any = null;
+  let redemptions: any[] = [];
 
   if (session) {
     participations = await prisma.challengeParticipation.findMany({
@@ -47,7 +48,15 @@ export default async function GamificationPage() {
     fullUserSession = await prisma.employee.findUnique({
       where: { id: session.employeeId },
     });
+
+    // Fetch reward redemptions
+    redemptions = await prisma.rewardRedemption.findMany({
+      where: { employeeId: session.employeeId },
+      include: { reward: true },
+      orderBy: { redeemedAt: 'desc' },
+    });
   }
+
 
   // Format data for client component serializability
   const serializedChallenges = challenges.map((ch) => ({
@@ -57,6 +66,7 @@ export default async function GamificationPage() {
     xp: ch.xp,
     difficulty: ch.difficulty,
     status: ch.status,
+    evidenceRequired: ch.evidenceRequired,
     deadline: ch.deadline ? ch.deadline.toISOString() : null,
   }));
 
@@ -66,9 +76,9 @@ export default async function GamificationPage() {
     description: badge.description,
     unlockRule: badge.unlockRule,
     icon: badge.icon,
-    employees: badge.employees ? badge.employees.map((eb) => ({
+    employees: (badge.employees || []).map((eb) => ({
       id: eb.employeeId,
-    })) : [],
+    })),
   }));
 
   const serializedLeaderboard = leaderboard.map((user) => ({
@@ -89,13 +99,23 @@ export default async function GamificationPage() {
     approval: p.approval,
   }));
 
-  const serializedRewards = rewards.map((rew) => ({
-    id: rew.id,
-    name: rew.name,
-    description: rew.description,
-    pointsRequired: rew.pointsRequired,
-    stock: rew.stock,
-    status: rew.status,
+  const serializedRewards = rewards.map((r) => ({
+    id: r.id,
+    name: r.name,
+    description: r.description,
+    pointsRequired: r.pointsRequired,
+    stock: r.stock,
+    status: r.status,
+  }));
+
+  const serializedRedemptions = redemptions.map((red) => ({
+    id: red.id,
+    rewardId: red.rewardId,
+    pointsSpent: red.pointsSpent,
+    redeemedAt: red.redeemedAt.toISOString(),
+    reward: {
+      name: red.reward.name,
+    },
   }));
 
   const clientSession = session ? {
@@ -114,7 +134,7 @@ export default async function GamificationPage() {
         <div>
           <h1 style={{ fontSize: '2rem', fontWeight: 800 }}>🏆 Culture & Gamification Portal</h1>
           <p style={{ color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
-            Accept eco-challenges, track carbon reductions, and unlock sustainability badges.
+            Accept eco-challenges, track carbon reductions, unlock badges, and redeem points for rewards.
           </p>
         </div>
       </div>
@@ -125,6 +145,7 @@ export default async function GamificationPage() {
         leaderboard={serializedLeaderboard}
         participations={serializedParticipations}
         rewards={serializedRewards}
+        redemptions={serializedRedemptions}
         currentUser={clientSession}
       />
     </div>

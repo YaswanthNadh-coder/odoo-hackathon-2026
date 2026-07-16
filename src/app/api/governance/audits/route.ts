@@ -10,19 +10,20 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { title, description, auditor, date, status, findings } = body;
+    const { title, departmentId, auditorName, auditDate, status, score, findings } = body;
 
-    if (!title || !auditor) {
-      return NextResponse.json({ error: 'Title and Auditor are required.' }, { status: 400 });
+    if (!title || !auditorName || !departmentId || !auditDate) {
+      return NextResponse.json({ error: 'Title, Department, Auditor, and Date are required.' }, { status: 400 });
     }
 
     const audit = await prisma.audit.create({
       data: {
         title,
-        description,
-        auditor,
-        date: date ? new Date(date) : new Date(),
-        status: status || 'pending',
+        departmentId,
+        auditorName,
+        auditDate: new Date(auditDate),
+        status: status || 'planned',
+        score: score !== undefined ? score : null,
         findings,
       },
     });
@@ -41,20 +42,21 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { id, title, description, auditor, date, status, findings } = body;
+    const { id, title, departmentId, auditorName, auditDate, status, score, findings } = body;
 
-    if (!id || !title || !auditor) {
-      return NextResponse.json({ error: 'ID, Title, and Auditor are required.' }, { status: 400 });
+    if (!id || !title || !auditorName || !departmentId || !auditDate) {
+      return NextResponse.json({ error: 'ID, Title, Department, Auditor, and Date are required.' }, { status: 400 });
     }
 
     const audit = await prisma.audit.update({
       where: { id },
       data: {
         title,
-        description,
-        auditor,
-        date: date ? new Date(date) : undefined,
+        departmentId,
+        auditorName,
+        auditDate: new Date(auditDate),
         status,
+        score: score !== undefined ? score : null,
         findings,
       },
     });
